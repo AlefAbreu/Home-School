@@ -37,6 +37,7 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
   const [currentMistakes, setCurrentMistakes] = useState<string[]>([]);
 
   const [readingIndex, setReadingIndex] = useState(0);
+  const [problemIndex, setProblemIndex] = useState(0);
 
   useEffect(() => {
     // Load gamification stats from IndexedDB
@@ -259,34 +260,56 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
   };
 
   const handleMathProblemSubmit = async () => {
-    const correct = session.atividades_matematica?.bloco_operacoes_problemas?.[0]?.solucao_matematica_esperada || 0;
+    const currentProblem = session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex];
+    const correct = currentProblem?.solucao_matematica_esperada || 0;
+    
     if (parseFloat(mathAnswer.replace(',', '.')) === correct) {
       setMathFeedback("Problema resolvido com perfeição!");
       
-      const probAnswers = [{
-        problem: session.atividades_matematica?.bloco_operacoes_problemas?.[0]?.enunciado_textual_problema || '',
+      const probAnswers = [...mathProblemAnswers, {
+        problem: currentProblem?.enunciado_textual_problema || '',
         expression: problemExpression,
         answer: mathAnswer,
         correct: true
       }];
       setMathProblemAnswers(probAnswers);
 
-      setTimeout(() => completeSession(probAnswers), 2000);
+      setTimeout(() => {
+        setMathFeedback(null);
+        setMathAnswer('');
+        setProblemExpression('');
+        
+        if (problemIndex < (session.atividades_matematica?.bloco_operacoes_problemas?.length || 1) - 1) {
+          setProblemIndex(prev => prev + 1);
+        } else {
+          completeSession(probAnswers);
+        }
+      }, 2000);
     } else {
       setMathFeedback("Ops, tente novamente! Verifique a dica.");
     }
   };
 
   const handleAskForHelpMathProblem = async () => {
-    const probAnswers = [{
-      problem: session.atividades_matematica?.bloco_operacoes_problemas?.[0]?.enunciado_textual_problema || '',
+    const currentProblem = session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex];
+    const probAnswers = [...mathProblemAnswers, {
+      problem: currentProblem?.enunciado_textual_problema || '',
       expression: problemExpression,
       answer: mathAnswer,
       correct: false,
       askedForHelp: true
     }];
     setMathProblemAnswers(probAnswers);
-    completeSession(probAnswers);
+    
+    setMathFeedback(null);
+    setMathAnswer('');
+    setProblemExpression('');
+    
+    if (problemIndex < (session.atividades_matematica?.bloco_operacoes_problemas?.length || 1) - 1) {
+      setProblemIndex(prev => prev + 1);
+    } else {
+      completeSession(probAnswers);
+    }
   };
 
   const getProgressWidth = () => {
@@ -574,16 +597,18 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
                   className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8"
                 >
                   <div className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-bold mb-4">
-                    Matemática (Moedas e Centavos)
+                    Matemática (Problemas: {problemIndex + 1}/{session.atividades_matematica?.bloco_operacoes_problemas?.length || 1})
                   </div>
                   
                   {/* Cápsula Teórica Introdutória */}
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 text-sm text-slate-700 leading-relaxed">
-                    {session.atividades_matematica?.bloco_operacoes_problemas?.[0]?.capsula_teorica_introdutoria}
-                  </div>
+                  {session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.capsula_teorica_introdutoria && (
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 text-sm text-slate-700 leading-relaxed">
+                      {session.atividades_matematica.bloco_operacoes_problemas[problemIndex].capsula_teorica_introdutoria}
+                    </div>
+                  )}
 
                   <h3 className="text-xl font-bold mb-6">
-                    {session.atividades_matematica?.bloco_operacoes_problemas?.[0]?.enunciado_textual_problema}
+                    {session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema}
                   </h3>
                   
                   {/* Área de resposta matemática */}

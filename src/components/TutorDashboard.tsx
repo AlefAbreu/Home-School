@@ -9,6 +9,7 @@ interface TutorDashboardProps {
 
 export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) => {
   const [text, setText] = useState('');
+  const [selectedTables, setSelectedTables] = useState<number[]>([2, 3]);
   const [results, setResults] = useState<StudentResult[]>([]);
   const [expandedTextId, setExpandedTextId] = useState<string | null>(null);
 
@@ -54,12 +55,40 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
+
+        <div className="mb-8">
+          <label className="block font-bold mb-3 flex items-center gap-2 text-slate-700">
+            <Calculator className="w-5 h-5 text-blue-500" />
+            1. Selecione as Tabuadas para Estudo (Opcional):
+          </label>
+          <div className="flex flex-wrap gap-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+              <button
+                key={num}
+                onClick={() => {
+                  setSelectedTables(prev => 
+                    prev.includes(num) 
+                      ? prev.filter(n => n !== num) 
+                      : [...prev, num]
+                  )
+                }}
+                className={`w-12 h-12 rounded-lg font-bold text-lg transition-all ${
+                  selectedTables.includes(num) 
+                    ? 'bg-blue-500 text-white shadow-md transform scale-105' 
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+        </div>
         
         <div className="grid grid-cols-1 mb-6">
           <div>
             <label className="block font-bold mb-2 flex items-center gap-2">
               <Settings className="w-5 h-5 text-blue-500" />
-              Carregar Atividades (JSON)
+              2. Carregar Atividades (JSON)
             </label>
             <div className="w-full p-8 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-center transition-colors hover:bg-slate-100">
               <p className="text-slate-500 mb-4">Selecione o arquivo JSON contendo a estrutura da missão de estudo gerada offline.</p>
@@ -78,13 +107,47 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
                       reader.onload = (event) => {
                         try {
                           const json = JSON.parse(event.target?.result as string);
+                          
+                          // Gera as tabuadas estáticas baseado na seleção do usuário
+                          const generatedTabuadas = selectedTables.map(num => {
+                            const apresentacao_crescente_completa = Array.from({length: 10}, (_, i) => ({
+                              fator_a: num,
+                              fator_b: i + 1,
+                              produto: num * (i + 1)
+                            }));
+                            
+                            const bateria_desafio_sequencial = apresentacao_crescente_completa.map(fact => ({
+                              equacao_apresentada: `${fact.fator_a} x ${fact.fator_b}`,
+                              resultado_correto: fact.produto,
+                              dica_calculo_mental: fact.fator_b === 1 ? 'Qualquer número multiplicado por 1 é ele mesmo!' : `Lembre-se de adicionar ${fact.fator_a} ao resultado anterior.`
+                            }));
+                            
+                            const bateria_desafio_aleatorio = [...bateria_desafio_sequencial].sort(() => Math.random() - 0.5);
+                        
+                            return {
+                              multiplo_selecionado: num,
+                              apresentacao_crescente_completa,
+                              bateria_desafio_sequencial,
+                              bateria_desafio_aleatorio
+                            };
+                          });
+                          
+                          if (!json.atividades_matematica) {
+                            json.atividades_matematica = {
+                              blocos_tabuada: [],
+                              bloco_operacoes_problemas: []
+                            };
+                          }
+                          
+                          // Substitui as tabuadas do JSON pelas geradas estaticamente
+                          json.atividades_matematica.blocos_tabuada = generatedTabuadas;
+
                           onGenerate(json, text);
                         } catch (err) {
                           alert('Arquivo JSON inválido. Verifique o formato.');
                         }
                       };
                       reader.readAsText(file);
-                      // Reset input so the same file can be uploaded again if needed
                       e.target.value = '';
                     }}
                   />
