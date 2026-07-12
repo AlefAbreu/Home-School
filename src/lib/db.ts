@@ -135,6 +135,18 @@ export const updateStudentResult = async (id: string, updateFn: (result: Student
   });
 };
 
+export const deleteStudentResult = async (id: string): Promise<void> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('results', 'readwrite');
+    const store = tx.objectStore('results');
+    const request = store.delete(id);
+    
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
 export const evaluateStudentResult = async (id: string): Promise<void> => {
   const db = await initDB();
   return new Promise((resolve, reject) => {

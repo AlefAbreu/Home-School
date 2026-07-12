@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Settings, Key, CheckCircle2, BookOpen, Calculator, AlertTriangle, Flag, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, Settings, Key, CheckCircle2, BookOpen, Calculator, AlertTriangle, Flag, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { GeneratedStudySession } from '../types';
-import { getStudentResults, StudentResult, evaluateStudentResult, updateStudentResult } from '../lib/db';
+import { getStudentResults, StudentResult, evaluateStudentResult, updateStudentResult, deleteStudentResult } from '../lib/db';
 
 interface TutorDashboardProps {
   onGenerate: (data: GeneratedStudySession, text: string) => void;
@@ -12,14 +12,29 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
   const [selectedTables, setSelectedTables] = useState<number[]>([2, 3]);
   const [results, setResults] = useState<StudentResult[]>([]);
   const [expandedTextId, setExpandedTextId] = useState<string | null>(null);
+  const [expandedMissionId, setExpandedMissionId] = useState<string | null>(null);
+
+  const fetchResults = async () => {
+    const res = await getStudentResults();
+    setResults(res.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  };
 
   useEffect(() => {
-    getStudentResults().then(res => setResults(res.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())));
+    fetchResults();
   }, []);
 
-  const handleEvaluate = async (id: string) => {
+  const handleEvaluate = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     await evaluateStudentResult(id);
-    setResults(await getStudentResults());
+    await fetchResults();
+  };
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Tem certeza que deseja excluir esta missão?')) {
+      await deleteStudentResult(id);
+      await fetchResults();
+    }
   };
 
   const toggleNeedsReview = async (resultId: string, section: 'reading' | 'challenge' | 'problem', index: number) => {
@@ -33,17 +48,65 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
       }
       return result;
     });
-    setResults(await getStudentResults());
+    await fetchResults();
   };
+
+  const today = new Date();
+  const weekDays = Array.from({length: 7}).map((_, i) => {
+    const d = new Date();
+    d.setDate(today.getDate() - (6 - i));
+    d.setHours(0, 0, 0, 0);
+    const dEnd = new Date(d);
+    dEnd.setDate(d.getDate() + 1);
+    
+    const count = results.filter(r => {
+      const rd = new Date(r.date);
+      return rd >= d && rd < dEnd;
+    }).length;
+
+    return {
+      date: d,
+      count,
+      isToday: i === 6
+    };
+  });
+
+  const weekDayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   return (
     <div className="container mx-auto p-6 max-w-5xl">
       <header className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-slate-800">Configuração da Sessão de Estudo</h1>
-        <p className="text-slate-500 mt-2">Insira o texto de leitura e defina os parâmetros para a Inteligência Artificial gerar a aula.</p>
+        <h1 className="text-3xl font-bold text-slate-800">Painel do Tutor</h1>
+        <p className="text-slate-500 mt-2">Acompanhe as missões concluídas e crie novas atividades.</p>
       </header>
 
+      {/* Calendário da Semana */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+        <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-blue-500" />
+          Atividade nos Últimos 7 Dias
+        </h2>
+        <div className="flex gap-2 justify-between">
+          {weekDays.map((day, idx) => (
+            <div 
+              key={idx} 
+              className={`flex-1 flex flex-col items-center justify-center p-3 rounded-xl border ${day.isToday ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100'}`}
+            >
+              <span className="text-xs font-bold text-slate-400 mb-1">{weekDayNames[day.date.getDay()]}</span>
+              <span className="text-sm text-slate-600 mb-2">{day.date.getDate()}/{day.date.getMonth() + 1}</span>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${day.count > 0 ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-200 text-slate-400'}`}>
+                {day.count}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-slate-800">
+          <CheckCircle2 className="w-6 h-6 text-blue-500" />
+          Nova Sessão de Estudo
+        </h2>
         <label className="block font-bold mb-2 flex items-center gap-2">
           <FileText className="w-5 h-5 text-blue-500" />
           Texto Base para Interpretação (Cole a história aqui):
@@ -175,27 +238,43 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
           
           <div className="space-y-6">
             {results.map((result) => (
-              <div key={result.id} className={`p-6 rounded-xl border ${result.evaluated ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200'}`}>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-slate-700">Data: {new Date(result.date).toLocaleString()}</h3>
-                  {!result.evaluated && (
+              <div key={result.id} className={`rounded-xl border overflow-hidden transition-all duration-300 ${result.evaluated ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200'}`}>
+                <div 
+                  className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 cursor-pointer hover:bg-black/5 transition-colors gap-4"
+                  onClick={() => setExpandedMissionId(expandedMissionId === result.id ? null : result.id)}
+                >
+                  <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                    {expandedMissionId === result.id ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                    Missão de {new Date(result.date).toLocaleString()}
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    {!result.evaluated && (
+                      <button 
+                        onClick={(e) => handleEvaluate(result.id, e)}
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                      >
+                        Marcar Avaliado
+                      </button>
+                    )}
+                    {result.evaluated && (
+                      <span className="text-sm font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+                        ✓ Avaliado
+                      </span>
+                    )}
                     <button 
-                      onClick={() => handleEvaluate(result.id)}
-                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                      onClick={(e) => handleDelete(result.id, e)}
+                      className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                      title="Excluir Missão"
                     >
-                      Marcar como Avaliado
+                      <Trash2 className="w-5 h-5" />
                     </button>
-                  )}
-                  {result.evaluated && (
-                    <span className="text-sm font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
-                      ✓ Avaliado
-                    </span>
-                  )}
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  {/* Reading Text */}
-                  {result.readingText && (
+                {expandedMissionId === result.id && (
+                  <div className="p-6 pt-0 space-y-4 border-t border-black/5 mt-4">
+                    {/* Reading Text */}
+                    {result.readingText && (
                     <div className="bg-white rounded border border-slate-200 text-sm overflow-hidden mb-4">
                       <button 
                         onClick={() => setExpandedTextId(expandedTextId === result.id ? null : result.id)}
@@ -301,7 +380,8 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
                       ))}
                     </div>
                   )}
-                </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
