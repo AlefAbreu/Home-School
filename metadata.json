@@ -1,0 +1,8 @@
+{
+  "name": "Remix: HomeSchool",
+  "description": "Projeto particular de Home School",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

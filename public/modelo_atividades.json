@@ -1,0 +1,52 @@
+{
+  "metadados_pedagogicos": {
+    "tema_central_do_texto": "Amizade e Natureza",
+    "nivel_estimado_complexidade": 3
+  },
+  "atividades_leitura": [
+    {
+      "id_questao": 1,
+      "tipo_competencia": "interpretacao_direta",
+      "enunciado_pergunta": "Qual é o nome do personagem principal?",
+      "obriga_justificacao_textual": false,
+      "orientacao_de_correcao_tutor": "O aluno deve mencionar o nome 'João'."
+    },
+    {
+      "id_questao": 2,
+      "tipo_competencia": "inferencia_tematica",
+      "enunciado_pergunta": "Por que o personagem estava triste no início da história? Justifique detalhadamente a sua resposta retirando um trecho do texto lido",
+      "obriga_justificacao_textual": true,
+      "orientacao_de_correcao_tutor": "O aluno deve inferir que ele perdeu seu brinquedo e citar a parte do texto correspondente."
+    }
+  ],
+  "atividades_matematica": {
+    "blocos_tabuada": [
+      {
+        "multiplo_selecionado": 2,
+        "apresentacao_crescente_completa": [
+          { "fator_a": 2, "fator_b": 1, "produto": 2 },
+          { "fator_a": 2, "fator_b": 2, "produto": 4 }
+        ],
+        "bateria_desafio_sequencial": [
+          { "equacao_apresentada": "2 x 1", "resultado_correto": 2, "dica_calculo_mental": "Qualquer número multiplicado por 1 é ele mesmo!" },
+          { "equacao_apresentada": "2 x 2", "resultado_correto": 4, "dica_calculo_mental": "O dobro de 2!" }
+        ],
+        "bateria_desafio_aleatorio": [
+          { "equacao_apresentada": "2 x 2", "resultado_correto": 4, "dica_calculo_mental": "O dobro de 2!" },
+          { "equacao_apresentada": "2 x 1", "resultado_correto": 2, "dica_calculo_mental": "Qualquer número multiplicado por 1 é ele mesmo!" }
+        ]
+      }
+    ],
+    "bloco_operacoes_problemas": [
+      {
+        "id_problema": 1,
+        "tema_associado": "moedas_centavos",
+        "capsula_teorica_introdutoria": "Lembre-se que R$ 1,00 equivale a 100 centavos.",
+        "enunciado_textual_problema": "Se João tinha R$ 5,00 e comprou um lanche por R$ 3,50, quanto sobrou de troco?",
+        "necessita_montagem_expressao": true,
+        "passos_para_montagem_guiada": "Subtraia 3,50 de 5,00",
+        "solucao_matematica_esperada": 1.50
+      }
+    ]
+  }
+}
