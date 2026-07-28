@@ -22,6 +22,17 @@ export default function App() {
   const [isApproved, setIsApproved] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const handleLogin = async () => {
+    setLoginError(null);
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      console.error(err);
+      setLoginError(err.message || "Erro ao fazer login. Tente abrir o app em uma nova aba.");
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -58,7 +69,7 @@ export default function App() {
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Tutor AI</h1>
           <p className="text-slate-500 mb-8">Faça login com sua conta Google para acessar as planilhas e gerar as aulas.</p>
           <button
-            onClick={signInWithGoogle}
+            onClick={handleLogin}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all flex items-center justify-center gap-3"
           >
             <svg className="w-6 h-6 bg-white rounded-full p-1" viewBox="0 0 24 24">
@@ -69,6 +80,25 @@ export default function App() {
             </svg>
             Entrar com Google
           </button>
+
+          {window !== window.parent && (
+            <a href={window.location.href} target="_blank" rel="noopener noreferrer" className="block mt-4 text-sm text-blue-500 hover:underline font-semibold">
+              Abrir em Nova Aba (Recomendado para Login)
+            </a>
+          )}
+          
+          {loginError && (
+            <div className="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl text-left">
+              <p className="font-bold mb-1">Erro de Autenticação</p>
+              <p className="mb-2">{loginError}</p>
+              <p className="text-xs opacity-90">
+                Dica 1: Se o erro for "unauthorized-domain", adicione o domínio <strong>{window.location.host}</strong> na lista de "Domínios Autorizados" no console do Firebase (Authentication &gt; Settings).
+              </p>
+              <p className="text-xs opacity-90 mt-1">
+                Dica 2: Se a janela de login fechar imediatamente, bloqueios de iFrame podem estar ativos. Experimente abrir este aplicativo em uma <strong>nova aba do navegador</strong>.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );

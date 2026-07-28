@@ -1,0 +1,2 @@
+#!/bin/bash
+sed -i 's/Entrar com Google\n          <\/button>/Entrar com Google\n          <\/button>\n\n          {window !== window.parent \&\& (\n            <a href={window.location.href} target="_blank" rel="noopener noreferrer" className="block mt-4 text-sm text-blue-500 hover:underline font-semibold">\n              Abrir em Nova Aba (Recomendado para Login)\n            <\/a>\n          )}/g' src/App.tsx
