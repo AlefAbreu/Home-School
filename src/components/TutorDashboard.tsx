@@ -31,7 +31,7 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Tem certeza que deseja excluir esta missão?')) {
+    if (true) {
       await deleteStudentResult(id);
       await fetchResults();
     }
@@ -74,27 +74,27 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
   const weekDayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   return (
-    <div className="container mx-auto p-6 max-w-5xl">
-      <header className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-slate-800">Painel do Tutor</h1>
-        <p className="text-slate-500 mt-2">Acompanhe as missões concluídas e crie novas atividades.</p>
+    <div className="container mx-auto p-4 sm:p-8 max-w-4xl">
+      <header className="mb-10 text-center">
+        <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">Painel do Tutor</h1>
+        <p className="text-slate-500 mt-3 text-lg">Acompanhe as missões concluídas e crie novas atividades.</p>
       </header>
 
       {/* Calendário da Semana */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
-        <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-blue-500" />
+      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 mb-8">
+        <h2 className="text-xl font-bold text-slate-700 mb-6 flex items-center gap-2">
+          <Calendar className="w-6 h-6 text-blue-500" />
           Atividade nos Últimos 7 Dias
         </h2>
-        <div className="flex gap-2 justify-between">
+        <div className="flex gap-2 sm:gap-4 justify-between">
           {weekDays.map((day, idx) => (
             <div 
               key={idx} 
-              className={`flex-1 flex flex-col items-center justify-center p-3 rounded-xl border ${day.isToday ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100'}`}
+              className={`flex-1 flex flex-col items-center justify-center py-4 rounded-2xl border ${day.isToday ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-100'}`}
             >
-              <span className="text-xs font-bold text-slate-400 mb-1">{weekDayNames[day.date.getDay()]}</span>
-              <span className="text-sm text-slate-600 mb-2">{day.date.getDate()}/{day.date.getMonth() + 1}</span>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${day.count > 0 ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-200 text-slate-400'}`}>
+              <span className="text-xs sm:text-sm font-bold text-slate-400 mb-1">{weekDayNames[day.date.getDay()]}</span>
+              <span className="text-sm font-semibold text-slate-600 mb-3">{day.date.getDate()}/{day.date.getMonth() + 1}</span>
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${day.count > 0 ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-white text-slate-300 border border-slate-200'}`}>
                 {day.count}
               </div>
             </div>
@@ -102,29 +102,20 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-slate-800">
-          <CheckCircle2 className="w-6 h-6 text-blue-500" />
+      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
+        <h2 className="text-2xl font-bold mb-8 flex items-center gap-3 text-slate-800">
+          <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
           Nova Sessão de Estudo
         </h2>
-        <label className="block font-bold mb-2 flex items-center gap-2">
-          <FileText className="w-5 h-5 text-blue-500" />
-          Texto Base para Interpretação (Cole a história aqui):
-        </label>
-        <textarea 
-          rows={8} 
-          className="w-full p-4 border-2 border-slate-200 rounded-xl mb-6 focus:border-blue-500 outline-none resize-y" 
-          placeholder="Era uma vez, numa floresta distante..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
 
-        <div className="mb-8">
+        <div className="mb-10">
           <label className="block font-bold mb-3 flex items-center gap-2 text-slate-700">
             <Calculator className="w-5 h-5 text-blue-500" />
-            1. Selecione as Tabuadas para Estudo (Opcional):
+            1. Selecione as Tabuadas para Estudo (Opcional)
           </label>
-          <div className="flex flex-wrap gap-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div className="flex flex-wrap gap-3 bg-slate-50 p-6 rounded-2xl border border-slate-200">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
               <button
                 key={num}
@@ -135,10 +126,10 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
                       : [...prev, num]
                   )
                 }}
-                className={`w-12 h-12 rounded-lg font-bold text-lg transition-all ${
+                className={`w-14 h-14 rounded-xl font-bold text-lg transition-all ${
                   selectedTables.includes(num) 
-                    ? 'bg-blue-500 text-white shadow-md transform scale-105' 
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 transform scale-105' 
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:border-slate-300'
                 }`}
               >
                 {num}
@@ -149,14 +140,17 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
         
         <div className="grid grid-cols-1 mb-6">
           <div>
-            <label className="block font-bold mb-2 flex items-center gap-2">
+            <label className="block font-bold mb-3 flex items-center gap-2 text-slate-700">
               <Settings className="w-5 h-5 text-blue-500" />
               2. Carregar Atividades (JSON)
             </label>
-            <div className="w-full p-8 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-center transition-colors hover:bg-slate-100">
-              <p className="text-slate-500 mb-4">Selecione o arquivo JSON contendo a estrutura da missão de estudo gerada offline.</p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 items-center">
-                <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all flex items-center gap-2">
+            <div className="w-full p-8 sm:p-12 border-2 border-dashed border-slate-300 rounded-3xl bg-slate-50 flex flex-col items-center justify-center text-center transition-colors hover:bg-slate-100/80 group">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-slate-200 group-hover:scale-105 transition-transform">
+                <FileText className="w-8 h-8 text-blue-500" />
+              </div>
+              <p className="text-slate-500 mb-6 max-w-md">Selecione o arquivo JSON contendo a estrutura da missão de estudo gerada offline.</p>
+              <div className="flex flex-col gap-4 sm:flex-row items-center w-full sm:w-auto">
+                <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-md transition-all flex items-center gap-2 w-full sm:w-auto justify-center">
                   <FileText className="w-5 h-5" />
                   Escolher Arquivo JSON
                   <input
@@ -205,9 +199,11 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
                           // Substitui as tabuadas do JSON pelas geradas estaticamente
                           json.atividades_matematica.blocos_tabuada = generatedTabuadas;
 
-                          onGenerate(json, text);
+                          const textoApoio = json.texto_de_apoio || json.metadados_pedagogicos?.texto_de_apoio || text;
+
+                          onGenerate(json, textoApoio);
                         } catch (err) {
-                          alert('Arquivo JSON inválido. Verifique o formato.');
+                          console.error('Arquivo JSON inválido. Verifique o formato.');
                         }
                       };
                       reader.readAsText(file);
@@ -230,40 +226,42 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
 
       {/* Avaliação de Missões */}
       {results.length > 0 && (
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 mt-8">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <CheckCircle2 className="w-6 h-6 text-green-500" />
+        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 mt-8">
+          <h2 className="text-2xl font-bold text-slate-800 mb-8 flex items-center gap-3">
+            <div className="p-2 bg-green-100 text-green-600 rounded-xl">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
             Missões Concluídas pelo Aluno
           </h2>
           
           <div className="space-y-6">
             {results.map((result) => (
-              <div key={result.id} className={`rounded-xl border overflow-hidden transition-all duration-300 ${result.evaluated ? 'bg-slate-50 border-slate-200' : 'bg-blue-50 border-blue-200'}`}>
+              <div key={result.id} className={`rounded-2xl border overflow-hidden transition-all duration-300 ${result.evaluated ? 'bg-slate-50 border-slate-200' : 'bg-blue-50/50 border-blue-200 shadow-sm'}`}>
                 <div 
                   className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 cursor-pointer hover:bg-black/5 transition-colors gap-4"
                   onClick={() => setExpandedMissionId(expandedMissionId === result.id ? null : result.id)}
                 >
-                  <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                  <h3 className="font-bold text-slate-700 flex items-center gap-3 text-lg">
                     {expandedMissionId === result.id ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
                     Missão de {new Date(result.date).toLocaleString()}
                   </h3>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                     {!result.evaluated && (
                       <button 
                         onClick={(e) => handleEvaluate(result.id, e)}
-                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                        className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors"
                       >
                         Marcar Avaliado
                       </button>
                     )}
                     {result.evaluated && (
-                      <span className="text-sm font-bold text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
+                      <span className="text-sm font-bold text-slate-500 bg-white px-4 py-2 rounded-xl border border-slate-200">
                         ✓ Avaliado
                       </span>
                     )}
                     <button 
                       onClick={(e) => handleDelete(result.id, e)}
-                      className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                      className="text-red-400 hover:text-red-600 p-2.5 rounded-xl hover:bg-red-50 transition-colors"
                       title="Excluir Missão"
                     >
                       <Trash2 className="w-5 h-5" />
