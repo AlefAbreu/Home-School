@@ -1,0 +1,2 @@
+#!/bin/bash
+sed -i 's/const \[authLoading, setAuthLoading\] = useState(true);/const \[authLoading, setAuthLoading\] = useState(true);\n\n  useEffect(() => {\n    import("firebase\/auth").then(({ getRedirectResult }) => {\n      getRedirectResult(auth).catch((error) => {\n        console.error("Redirect login error:", error);\n        setLoginError(error.message || "Erro no login por redirecionamento.");\n      });\n    });\n  }, []);/g' src/App.tsx

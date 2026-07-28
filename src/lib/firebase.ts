@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
 
 const firebaseConfig = {
   projectId: "gen-lang-client-0157450384",
@@ -18,8 +18,16 @@ provider.addScope('https://www.googleapis.com/auth/drive.readonly');
 
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, provider);
-    return result;
+    try {
+      return await signInWithPopup(auth, provider);
+    } catch (popupError: any) {
+      if (popupError.code === "auth/popup-blocked" || popupError.code === "auth/popup-closed-by-user") {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      throw popupError;
+    }
+
   } catch (error) {
     console.error("Error signing in with Google:", error);
     throw error;

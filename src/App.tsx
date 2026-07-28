@@ -22,6 +22,15 @@ export default function App() {
   const [isApproved, setIsApproved] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    import("firebase/auth").then(({ getRedirectResult }) => {
+      getRedirectResult(auth).catch((error) => {
+        console.error("Redirect login error:", error);
+        setLoginError(error.message || "Erro no login por redirecionamento.");
+      });
+    });
+  }, []);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const handleLogin = async () => {
