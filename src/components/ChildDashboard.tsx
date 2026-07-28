@@ -327,7 +327,7 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
     }
   };
 
-  if (!stats) return null;
+  if (!stats) return <div className='h-screen w-full flex items-center justify-center bg-blue-50'><div className='text-2xl font-bold text-blue-500 animate-pulse'>Carregando Missão...</div></div>;
 
   return (
     <div className="h-[calc(100vh-80px)] w-full bg-blue-50 flex flex-col">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Settings, Key, CheckCircle2, BookOpen, Calculator, AlertTriangle, Flag, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { GeneratedStudySession } from '../types';
+import { auth } from '../lib/firebase';
 import { getStudentResults, subscribeToStudentResults, StudentResult, evaluateStudentResult, updateStudentResult, deleteStudentResult } from '../lib/db';
 
 interface TutorDashboardProps {
@@ -20,7 +21,7 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
   };
 
   useEffect(() => {
-    const unsubscribe = subscribeToStudentResults((res) => {
+    const unsubscribe = subscribeToStudentResults(auth.currentUser!.uid, (res) => {
       setResults(res.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     });
     return () => unsubscribe();

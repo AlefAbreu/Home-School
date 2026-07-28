@@ -112,8 +112,7 @@ export const saveActiveSession = async (sessionData: any, baseText: string, isAp
   await setDoc(docRef, { sessionData, baseText, isApproved });
 };
 
-export const subscribeToActiveSession = (callback: (data: any) => void) => {
-  const uid = auth.currentUser?.uid;
+export const subscribeToActiveSession = (uid: string, callback: (data: any) => void) => {
   if (!uid) return () => {};
   const docRef = doc(db, 'users', uid, 'activeSession', 'current');
   return onSnapshot(docRef, (docSnap) => {
@@ -126,8 +125,7 @@ export const subscribeToActiveSession = (callback: (data: any) => void) => {
 };
 
 
-export const subscribeToStudentResults = (callback: (results: StudentResult[]) => void) => {
-  const uid = auth.currentUser?.uid;
+export const subscribeToStudentResults = (uid: string, callback: (results: StudentResult[]) => void) => {
   if (!uid) return () => {};
   const colRef = collection(db, 'users', uid, 'results');
   return onSnapshot(colRef, (snapshot) => {

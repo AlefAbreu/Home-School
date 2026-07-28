@@ -56,7 +56,7 @@ export default function App() {
       setUser(currentUser);
       setAuthLoading(false);
       if (currentUser) {
-        unsubscribeSession = subscribeToActiveSession((data) => {
+        unsubscribeSession = subscribeToActiveSession(currentUser.uid, (data) => {
           if (data) {
             setSessionData(data.sessionData);
             setBaseText(data.baseText);
