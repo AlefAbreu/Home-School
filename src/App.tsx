@@ -13,7 +13,9 @@ import { GeneratedStudySession } from './types';
 import { GraduationCap, LayoutDashboard, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { auth, signInWithGoogle, logout } from './lib/firebase';
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { syncDataToDrive, syncDataFromDrive, getDriveToken } from './lib/driveSync';
+import { Cloud, Download, Upload } from 'lucide-react';
+import { User, onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'tutor' | 'child'>('tutor');
@@ -22,10 +24,19 @@ export default function App() {
   const [isApproved, setIsApproved] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [hasDriveToken, setHasDriveToken] = useState(false);
 
   useEffect(() => {
     import("firebase/auth").then(({ getRedirectResult }) => {
-      getRedirectResult(auth).catch((error) => {
+      getRedirectResult(auth).then((result) => {
+        if (result) {
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          if (credential?.accessToken) {
+            sessionStorage.setItem("drive_token", credential.accessToken);
+          }
+        }
+      }).catch((error) => {
         console.error("Redirect login error:", error);
         setLoginError(error.message || "Erro no login por redirecionamento.");
       });
@@ -46,6 +57,8 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser && getDriveToken()) setHasDriveToken(true);
+      if (currentUser && getDriveToken()) setHasDriveToken(true);
       setAuthLoading(false);
     });
     return () => unsubscribe();
@@ -121,7 +134,17 @@ export default function App() {
           <GraduationCap className="w-8 h-8" />
           Tutor AI
         </div>
-        <div className="flex flex-wrap justify-center gap-4">
+        <div className="flex flex-wrap justify-center items-center gap-4">
+          {hasDriveToken && (
+            <div className="flex gap-2 mr-4">
+              <button disabled={syncing} onClick={async () => { setSyncing(true); try { await syncDataFromDrive(); alert("Dados carregados com sucesso do Drive!"); window.location.reload(); } catch(e) { alert("Erro ao carregar do drive"); } setSyncing(false); }} className="px-3 py-2 rounded-full text-sm font-bold bg-green-50 text-green-600 hover:bg-green-100 flex items-center gap-1" title="Carregar do Drive">
+                <Download className="w-4 h-4" /> <span className="hidden sm:inline">{syncing ? "..." : "Carregar"}</span>
+              </button>
+              <button disabled={syncing} onClick={async () => { setSyncing(true); try { await syncDataToDrive(); alert("Dados salvos no Drive com sucesso!"); } catch(e) { alert("Erro ao salvar no drive"); } setSyncing(false); }} className="px-3 py-2 rounded-full text-sm font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center gap-1" title="Salvar no Drive">
+                <Upload className="w-4 h-4" /> <span className="hidden sm:inline">{syncing ? "..." : "Salvar"}</span>
+              </button>
+            </div>
+          )}
           <button 
             onClick={() => setActiveTab('tutor')} 
             className={`px-4 sm:px-6 py-2 rounded-full font-bold transition-all duration-300 flex items-center gap-2 ${

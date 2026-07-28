@@ -1,3 +1,5 @@
+#!/bin/bash
+cat << 'INNER_EOF' > src/lib/firebase.ts
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
 
@@ -41,3 +43,4 @@ export const logout = () => {
   sessionStorage.removeItem('drive_token');
   return signOut(auth);
 };
+INNER_EOF
