@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Settings, Key, CheckCircle2, BookOpen, Calculator, AlertTriangle, Flag, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { GeneratedStudySession } from '../types';
-import { getStudentResults, StudentResult, evaluateStudentResult, updateStudentResult, deleteStudentResult } from '../lib/db';
+import { getStudentResults, subscribeToStudentResults, StudentResult, evaluateStudentResult, updateStudentResult, deleteStudentResult } from '../lib/db';
 
 interface TutorDashboardProps {
   onGenerate: (data: GeneratedStudySession, text: string) => void;
@@ -20,7 +20,10 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
   };
 
   useEffect(() => {
-    fetchResults();
+    const unsubscribe = subscribeToStudentResults((res) => {
+      setResults(res.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleEvaluate = async (id: string, e: React.MouseEvent) => {

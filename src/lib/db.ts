@@ -1,5 +1,5 @@
 import { db, auth } from './firebase';
-import { doc, getDoc, setDoc, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 export interface UserStats {
   id: string;
@@ -103,4 +103,38 @@ export const evaluateStudentResult = async (id: string): Promise<void> => {
   const uid = getUserId();
   const docRef = doc(db, 'users', uid, 'results', id);
   await updateDoc(docRef, { evaluated: true });
+};
+
+
+export const saveActiveSession = async (sessionData: any, baseText: string, isApproved: boolean): Promise<void> => {
+  const uid = getUserId();
+  const docRef = doc(db, 'users', uid, 'activeSession', 'current');
+  await setDoc(docRef, { sessionData, baseText, isApproved });
+};
+
+export const subscribeToActiveSession = (callback: (data: any) => void) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return () => {};
+  const docRef = doc(db, 'users', uid, 'activeSession', 'current');
+  return onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback(docSnap.data());
+    } else {
+      callback(null);
+    }
+  });
+};
+
+
+export const subscribeToStudentResults = (callback: (results: StudentResult[]) => void) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return () => {};
+  const colRef = collection(db, 'users', uid, 'results');
+  return onSnapshot(colRef, (snapshot) => {
+    const results = snapshot.docs.map(doc => doc.data() as StudentResult);
+    callback(results);
+  }, (error) => {
+    console.warn("Could not subscribe to results", error);
+    callback([]);
+  });
 };

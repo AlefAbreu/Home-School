@@ -11,6 +11,7 @@ import { ChildArea } from './components/ChildArea';
 import { TutorReview } from './components/TutorReview';
 import { GeneratedStudySession } from './types';
 import { GraduationCap, LayoutDashboard, LogOut } from 'lucide-react';
+import { saveActiveSession, subscribeToActiveSession } from './lib/db';
 import { motion } from 'framer-motion';
 import { auth, signInWithGoogle, logout } from './lib/firebase';
 
@@ -50,22 +51,39 @@ export default function App() {
   };
 
   useEffect(() => {
+    let unsubscribeSession: () => void;
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);
+      if (currentUser) {
+        unsubscribeSession = subscribeToActiveSession((data) => {
+          if (data) {
+            setSessionData(data.sessionData);
+            setBaseText(data.baseText);
+            setIsApproved(data.isApproved);
+          }
+        });
+      }
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubscribeSession) unsubscribeSession();
+    };
   }, []);
 
   const handleGenerate = (data: GeneratedStudySession, text: string) => {
     setSessionData(data);
     setBaseText(text);
     setIsApproved(false);
+    saveActiveSession(data, text, false).catch(console.error);
   };
 
   const handleApprove = () => {
     setIsApproved(true);
     setActiveTab('child');
+    if (sessionData) {
+      saveActiveSession(sessionData, baseText, true).catch(console.error);
+    }
   };
 
   if (authLoading) {
