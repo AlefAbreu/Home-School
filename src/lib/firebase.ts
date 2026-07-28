@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -12,8 +13,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
-provider.addScope('https://www.googleapis.com/auth/drive.appdata');
+
 
 export const signInWithGoogle = async () => {
   try {

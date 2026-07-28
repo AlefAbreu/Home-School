@@ -1,5 +1,5 @@
-export const DB_NAME = 'TutorAIDB';
-export const DB_VERSION = 2;
+import { db, auth } from './firebase';
+import { doc, getDoc, setDoc, collection, getDocs, updateDoc, deleteDoc } from 'firebase/firestore';
 
 export interface UserStats {
   id: string;
@@ -17,63 +17,35 @@ export interface StudentResult {
   evaluated: boolean;
 }
 
-export const initDB = (): Promise<IDBDatabase> => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    
-    request.onupgradeneeded = (e) => {
-      const db = (e.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains('gamification')) {
-        db.createObjectStore('gamification', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('results')) {
-        db.createObjectStore('results', { keyPath: 'id' });
-      }
-    };
-    
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+const getUserId = () => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  return uid;
 };
 
 export const getGamification = async (): Promise<UserStats> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('gamification', 'readonly');
-    const store = tx.objectStore('gamification');
-    const request = store.get('user_stats');
-    
-    request.onsuccess = () => {
-      if (request.result) {
-        // Migration from old schema if needed
-        resolve({
-          id: 'user_stats',
-          missionsCompleted: request.result.missionsCompleted || request.result.streak || 0,
-          badges: request.result.badges || [],
-        });
-      } else {
-        resolve({
-          id: 'user_stats',
-          missionsCompleted: 0,
-          badges: [],
-        });
-      }
-    };
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const uid = getUserId();
+    const docRef = doc(db, 'users', uid, 'stats', 'gamification');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as UserStats;
+    }
+  } catch (e) {
+    console.warn("Using default stats", e);
+  }
+  return {
+    id: 'user_stats',
+    missionsCompleted: 0,
+    badges: [],
+  };
 };
 
 export const saveGamification = async (data: Partial<UserStats>): Promise<void> => {
+  const uid = getUserId();
   const current = await getGamification();
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('gamification', 'readwrite');
-    const store = tx.objectStore('gamification');
-    const request = store.put({ ...current, ...data });
-    
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  const docRef = doc(db, 'users', uid, 'stats', 'gamification');
+  await setDoc(docRef, { ...current, ...data }, { merge: true });
 };
 
 export const incrementMissions = async (): Promise<UserStats> => {
@@ -94,73 +66,41 @@ export const awardBadge = async (badgeName: string): Promise<UserStats> => {
 };
 
 export const saveStudentResult = async (result: StudentResult): Promise<void> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('results', 'readwrite');
-    const store = tx.objectStore('results');
-    const request = store.put(result);
-    
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  const uid = getUserId();
+  const docRef = doc(db, 'users', uid, 'results', result.id);
+  await setDoc(docRef, result);
 };
 
 export const getStudentResults = async (): Promise<StudentResult[]> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('results', 'readonly');
-    const store = tx.objectStore('results');
-    const request = store.getAll();
-    
-    request.onsuccess = () => resolve(request.result || []);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const uid = getUserId();
+    const colRef = collection(db, 'users', uid, 'results');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(doc => doc.data() as StudentResult);
+  } catch (e) {
+    console.warn("Could not fetch results", e);
+    return [];
+  }
 };
 
 export const updateStudentResult = async (id: string, updateFn: (result: StudentResult) => StudentResult): Promise<void> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('results', 'readwrite');
-    const store = tx.objectStore('results');
-    const getReq = store.get(id);
-    
-    getReq.onsuccess = () => {
-      if (getReq.result) {
-        const updated = updateFn(getReq.result);
-        store.put(updated);
-      }
-      resolve();
-    };
-    getReq.onerror = () => reject(getReq.error);
-  });
+  const uid = getUserId();
+  const docRef = doc(db, 'users', uid, 'results', id);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    const updated = updateFn(docSnap.data() as StudentResult);
+    await setDoc(docRef, updated);
+  }
 };
 
 export const deleteStudentResult = async (id: string): Promise<void> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('results', 'readwrite');
-    const store = tx.objectStore('results');
-    const request = store.delete(id);
-    
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  const uid = getUserId();
+  const docRef = doc(db, 'users', uid, 'results', id);
+  await deleteDoc(docRef);
 };
 
 export const evaluateStudentResult = async (id: string): Promise<void> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('results', 'readwrite');
-    const store = tx.objectStore('results');
-    const getReq = store.get(id);
-    
-    getReq.onsuccess = () => {
-      if (getReq.result) {
-        const updated = { ...getReq.result, evaluated: true };
-        store.put(updated);
-      }
-      resolve();
-    };
-    getReq.onerror = () => reject(getReq.error);
-  });
+  const uid = getUserId();
+  const docRef = doc(db, 'users', uid, 'results', id);
+  await updateDoc(docRef, { evaluated: true });
 };
