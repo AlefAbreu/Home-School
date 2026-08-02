@@ -1,20 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { GeneratedStudySession } from '../types';
-import { getStudentResults, StudentResult } from '../lib/db';
-import { ChildDashboard } from './ChildDashboard';
-import { ChildReviewDashboard } from './ChildReviewDashboard';
-import { GraduationCap, AlertCircle, Play, PenTool } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { listActivitiesFromDrive, readActivityFromDrive, getDriveToken } from '../lib/drive';
+with open('src/components/ChildArea.tsx', 'r') as f:
+    content = f.read()
 
-interface ChildAreaProps {
-  sessionData: GeneratedStudySession | null;
-  baseText: string;
-  isApproved: boolean;
-  onGoBack: () => void;
-}
+import re
 
-export const ChildArea: React.FC<ChildAreaProps> = ({ sessionData: initialSessionData, baseText: initialBaseText, isApproved, onGoBack }) => {
+# Add imports
+content = re.sub(
+    r"import \{ motion \} from 'framer-motion';",
+    "import { motion } from 'framer-motion';\nimport { listActivitiesFromDrive, readActivityFromDrive, getDriveToken } from '../lib/drive';",
+    content
+)
+
+# Update the component body
+new_body = """export const ChildArea: React.FC<ChildAreaProps> = ({ sessionData: initialSessionData, baseText: initialBaseText, isApproved, onGoBack }) => {
   const [resultsToReview, setResultsToReview] = useState<StudentResult[]>([]);
   const [activeReviewResult, setActiveReviewResult] = useState<StudentResult | null>(null);
   
@@ -65,13 +62,15 @@ export const ChildArea: React.FC<ChildAreaProps> = ({ sessionData: initialSessio
     setLoading(false);
   };
 
-  if (loading) return <div className="p-8 text-center flex justify-center items-center h-[60vh]"><div className="animate-pulse text-blue-500 font-bold text-xl">Carregando Missões...</div></div>;
+  if (loading) return <div className="p-8 text-center flex justify-center items-center h-[60vh]"><div className="animate-pulse text-blue-500 font-bold text-xl">Carregando Missões do Drive...</div></div>;
 
   if (activeReviewResult) {
     return <ChildReviewDashboard result={activeReviewResult} onComplete={handleReviewComplete} />;
   }
 
   if (activeDriveSession) {
+    // We pass the fileId as a custom prop to ChildDashboard or we can handle it there,
+    // but for now let's pass it by modifying ChildDashboard or just using it here.
     return <ChildDashboard session={activeDriveSession.sessionData} baseText={activeDriveSession.baseText} fileId={activeDriveSession.fileId} fileName={driveActivities.find(f => f.id === activeDriveSession.fileId)?.name} />;
   }
   
@@ -86,7 +85,7 @@ export const ChildArea: React.FC<ChildAreaProps> = ({ sessionData: initialSessio
   if (!hasDriveActivities && !hasReviews && !(initialSessionData && isApproved)) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
-        <p className="text-xl text-slate-500 mb-4">Nenhuma aula pendente no momento.</p>
+        <p className="text-xl text-slate-500 mb-4">Nenhuma aula pendente no Google Drive.</p>
         <button 
           onClick={onGoBack}
           className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full"
@@ -162,4 +161,13 @@ export const ChildArea: React.FC<ChildAreaProps> = ({ sessionData: initialSessio
       </div>
     </div>
   );
-};
+};"""
+
+content = re.sub(
+    r"export const ChildArea: React\.FC<ChildAreaProps> = \(\{[\s\S]*?\}\);",
+    new_body,
+    content
+)
+
+with open('src/components/ChildArea.tsx', 'w') as f:
+    f.write(content)

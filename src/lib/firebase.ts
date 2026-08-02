@@ -15,6 +15,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, 'ai-studio-remixhomeschool-e0595e42-b8cd-4146-8818-bd45736d9c2b');
 const provider = new GoogleAuthProvider();
+provider.addScope('https://www.googleapis.com/auth/drive.file');
 
 
 export const signInWithGoogle = async () => {

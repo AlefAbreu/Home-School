@@ -3,10 +3,13 @@ import { Flame, Award, CheckCircle2, AlertCircle, BookOpen, PenTool } from 'luci
 import { GeneratedStudySession } from '../types';
 import { CanvasTimer } from './CanvasTimer';
 import { getGamification, incrementMissions, awardBadge, UserStats, saveStudentResult, StudentResult } from '../lib/db';
+import { markActivityAsCompleted } from '../lib/drive';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PomodoroTimer } from './PomodoroTimer';
 
 interface ChildDashboardProps {
+  fileId?: string;
+  fileName?: string;
   session: GeneratedStudySession;
   baseText: string;
 }
@@ -14,7 +17,7 @@ interface ChildDashboardProps {
 type StudyPhase = 'reading' | 'math_priming' | 'math_challenge' | 'math_timed' | 'math_problem' | 'completed';
 type TabType = 'text' | 'activities';
 
-export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseText }) => {
+export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseText, fileId, fileName }) => {
   const [phase, setPhase] = useState<StudyPhase>('reading');
   const [activeTab, setActiveTab] = useState<TabType>('text');
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -51,8 +54,7 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
   const [challengeIndex, setChallengeIndex] = useState(0);
 
   const completeSession = async (finalProblemAnswers = mathProblemAnswers, finalChallengeAnswers = mathChallengeAnswers, finalReadingAnswers = readingAnswers) => {
-    // Save to IndexedDB
-    await saveStudentResult({
+    const resultData = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       readingText: baseText,
@@ -60,10 +62,23 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
       mathChallengeAnswers: finalChallengeAnswers,
       mathProblemAnswers: finalProblemAnswers,
       evaluated: false
-    });
+    };
+    
+    // Save locally
+    await saveStudentResult(resultData);
+    
+    // Move on Drive if fileId exists
+    if (fileId && fileName) {
+      try {
+        await markActivityAsCompleted(fileId, resultData, fileName);
+      } catch (e) {
+        console.error("Failed to mark activity completed on Drive", e);
+      }
+    }
 
     // Award gamification
     await incrementMissions();
+
     await awardBadge("Sábio Intratável");
     const newStats = await getGamification();
     setStats(newStats);

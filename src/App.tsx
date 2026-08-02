@@ -12,6 +12,7 @@ import { TutorReview } from './components/TutorReview';
 import { GeneratedStudySession } from './types';
 import { GraduationCap, LayoutDashboard, LogOut } from 'lucide-react';
 import { saveActiveSession, subscribeToActiveSession } from './lib/db';
+import { saveActivityToDrive } from './lib/drive';
 import { motion } from 'framer-motion';
 import { auth, signInWithGoogle, logout } from './lib/firebase';
 
@@ -78,11 +79,18 @@ export default function App() {
     saveActiveSession(data, text, false).catch(console.error);
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     setIsApproved(true);
-    setActiveTab('child');
     if (sessionData) {
-      saveActiveSession(sessionData, baseText, true).catch(console.error);
+      try {
+        await saveActiveSession(sessionData, baseText, true);
+        const fileName = `Atividade_${new Date().toISOString().split('T')[0]}.json`;
+        await saveActivityToDrive({ sessionData, baseText }, fileName);
+        alert('Atividade salva com sucesso no Google Drive na pasta "Painel Tutor"!');
+      } catch (error) {
+        console.error("Failed to save to Drive:", error);
+        alert('Erro ao salvar no Google Drive. Verifique se você concedeu as permissões necessárias.');
+      }
     }
   };
 
@@ -172,6 +180,11 @@ export default function App() {
           <div className="text-sm font-medium text-slate-500 hidden md:block bg-slate-100 px-3 py-1.5 rounded-full">
             {user?.email}
           </div>
+          {user?.email && (
+            <div className="md:hidden flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-lg shadow-sm shrink-0" title={user.email}>
+              {user.email.charAt(0).toUpperCase()}
+            </div>
+          )}
           <button
             onClick={logout}
             className="px-4 py-2 rounded-full font-bold transition-all duration-300 flex items-center gap-2 bg-red-50 text-red-600 hover:bg-red-100"
