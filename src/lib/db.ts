@@ -27,7 +27,11 @@ export const getGamification = async (): Promise<UserStats> => {
   try {
     const uid = getUserId();
     const docRef = doc(db, 'users', uid, 'stats', 'gamification');
-    const docSnap = await getDoc(docRef);
+    // Add a timeout to prevent hanging if offline or DB issues
+    const docSnap = await Promise.race([
+      getDoc(docRef),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout fetching gamification')), 5000))
+    ]);
     if (docSnap.exists()) {
       return docSnap.data() as UserStats;
     }
@@ -86,7 +90,11 @@ export const getStudentResults = async (): Promise<StudentResult[]> => {
 export const updateStudentResult = async (id: string, updateFn: (result: StudentResult) => StudentResult): Promise<void> => {
   const uid = getUserId();
   const docRef = doc(db, 'users', uid, 'results', id);
-  const docSnap = await getDoc(docRef);
+  // Add a timeout to prevent hanging if offline or DB issues
+    const docSnap = await Promise.race([
+      getDoc(docRef),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout fetching gamification')), 5000))
+    ]);
   if (docSnap.exists()) {
     const updated = updateFn(docSnap.data() as StudentResult);
     await setDoc(docRef, updated);
