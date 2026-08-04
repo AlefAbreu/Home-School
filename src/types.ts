@@ -5,10 +5,12 @@ export interface PedagogyMetadata {
 
 export interface ReadingQuestion {
   id_questao: number;
-  tipo_competencia: 'interpretacao_direta' | 'inferencia_tematica';
+  tipo_competencia: 'interpretacao_direta' | 'inferencia_tematica' | 'multipla_escolha' | string;
   enunciado_pergunta: string;
   obriga_justificacao_textual: boolean;
   orientacao_de_correcao_tutor: string;
+  opcoes?: string[];
+  resposta_correta?: string | number;
 }
 
 export interface MultiplicationFact {
@@ -32,12 +34,14 @@ export interface MultiplicationBlock {
 
 export interface ProblemBlock {
   id_problema: number;
-  tema_associado: 'adicao' | 'subtracao' | 'multiplicacao' | 'divisao' | 'moedas_centavos' | 'fracoes_basicas';
+  tema_associado: 'adicao' | 'subtracao' | 'multiplicacao' | 'divisao' | 'moedas_centavos' | 'fracoes_basicas' | string;
   capsula_teorica_introdutoria: string;
   enunciado_textual_problema: string;
   necessita_montagem_expressao: boolean;
   passos_para_montagem_guiada: string;
-  solucao_matematica_esperada: number;
+  solucao_matematica_esperada: number | string;
+  opcoes?: string[];
+  resposta_correta?: string | number;
 }
 
 export interface MathActivities {

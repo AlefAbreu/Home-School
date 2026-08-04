@@ -14,6 +14,21 @@
     },
     {
       "id_questao": 2,
+      "tipo_competencia": "multipla_escolha",
+      "enunciado_pergunta": "O que o esquilo João encontrou na floresta?",
+      "obriga_justificacao_textual": false,
+      "orientacao_de_correcao_tutor": "A resposta correta é a opção C.",
+      "is_multipla_escolha": true,
+      "opcoes": [
+        "Uma maçã gigante",
+        "Um mapa do tesouro",
+        "Uma noz gigante e brilhante",
+        "Um novo amigo"
+      ],
+      "resposta_correta": "Uma noz gigante e brilhante"
+    },
+    {
+      "id_questao": 3,
       "tipo_competencia": "inferencia_tematica",
       "enunciado_pergunta": "Por que o personagem estava triste no início da história? Justifique detalhadamente a sua resposta retirando um trecho do texto lido",
       "obriga_justificacao_textual": true,
@@ -47,6 +62,23 @@
         "necessita_montagem_expressao": true,
         "passos_para_montagem_guiada": "Subtraia 3,50 de 5,00",
         "solucao_matematica_esperada": 1.50
+      },
+      {
+        "id_problema": 2,
+        "tema_associado": "adicao",
+        "capsula_teorica_introdutoria": "As nozes podem ser contadas usando a adição.",
+        "enunciado_textual_problema": "João tinha 3 nozes e seu amigo lhe deu mais 4. Quantas nozes João tem agora?",
+        "necessita_montagem_expressao": false,
+        "passos_para_montagem_guiada": "Some 3 + 4",
+        "solucao_matematica_esperada": "7 nozes",
+        "is_multipla_escolha": true,
+        "opcoes": [
+          "5 nozes",
+          "6 nozes",
+          "7 nozes",
+          "8 nozes"
+        ],
+        "resposta_correta": "7 nozes"
       }
     ]
   }
