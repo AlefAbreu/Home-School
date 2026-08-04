@@ -118,11 +118,13 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
 
   const handleReadingSubmit = () => {
     const currentActivity = session.atividades_leitura?.[readingIndex];
-    const isMultipleChoice = currentActivity?.is_multipla_escolha || currentActivity?.tipo_competencia === 'multipla_escolha' || (currentActivity?.opcoes && currentActivity.opcoes.length > 0);
-
+    const isMultipleChoice = currentActivity?.tipo_resposta === 'multipla_escolha' || !!currentActivity?.multipla_escolha || currentActivity?.is_multipla_escolha || currentActivity?.tipo_competencia === 'multipla_escolha' || (currentActivity?.opcoes && currentActivity.opcoes.length > 0);
     if (isMultipleChoice) {
-      const isCorrect = String(readingAnswer).trim() === String(currentActivity?.resposta_correta).trim();
-      setReadingFeedback(isCorrect ? "Correto! Brilhante dedução." : "Ops, essa não é a resposta correta!");
+      const isCorrect = currentActivity?.multipla_escolha 
+        ? String(readingAnswer).trim().toLowerCase() === String(currentActivity.multipla_escolha.id_resposta_correta).trim().toLowerCase()
+        : String(readingAnswer).trim() === String(currentActivity?.resposta_correta).trim();
+      const feedback = currentActivity?.multipla_escolha?.opcoes?.find((o: any) => o.id.toLowerCase() === readingAnswer.toLowerCase())?.feedback_pedagogico;
+      setReadingFeedback(isCorrect ? (feedback || "Correto! Brilhante dedução.") : (feedback || "Ops, essa não é a resposta correta!"));
 
       const newAnswers = [...readingAnswers, {
         question: currentActivity?.enunciado_pergunta || '',
@@ -344,7 +346,7 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
     const currentProblem = session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex];
     let isCorrect = false;
 
-    if (currentProblem?.tipo_resposta === 'multipla_escolha' || currentProblem?.is_multipla_escolha || (currentProblem?.opcoes && currentProblem.opcoes.length > 0)) {
+    if (currentProblem?.tipo_resposta === 'multipla_escolha' || !!currentProblem?.multipla_escolha || currentProblem?.is_multipla_escolha || (currentProblem?.opcoes && currentProblem.opcoes.length > 0)) {
       isCorrect = currentProblem?.multipla_escolha
         ? String(mathAnswer).trim().toLowerCase() === String(currentProblem.multipla_escolha.id_resposta_correta).trim().toLowerCase()
         : String(mathAnswer).trim() === String(currentProblem.resposta_correta).trim();
@@ -513,9 +515,9 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
                     {readingIndex + 1}. {extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).cleanText}
                   </h3>
                   
-                  {(session.atividades_leitura?.[readingIndex]?.tipo_resposta === 'multipla_escolha' || session.atividades_leitura?.[readingIndex]?.is_multipla_escolha || session.atividades_leitura?.[readingIndex]?.tipo_competencia === 'multipla_escolha' || extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).options) ? (
+                  {(session.atividades_leitura?.[readingIndex]?.tipo_resposta === 'multipla_escolha' || !!session.atividades_leitura?.[readingIndex]?.multipla_escolha || session.atividades_leitura?.[readingIndex]?.is_multipla_escolha || session.atividades_leitura?.[readingIndex]?.tipo_competencia === 'multipla_escolha' || extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).options) ? (
                     <div className="flex flex-col gap-3">
-                      {(session.atividades_leitura?.[readingIndex]?.multipla_escolha?.opcoes || extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).options?.map(opt => ({ id: opt.charAt(0), texto: opt, valor: opt })) || []).map((opcao: any, idx) => {
+                      {(session.atividades_leitura?.[readingIndex]?.multipla_escolha?.opcoes || extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).options?.map((opt, i) => ({ id: String.fromCharCode(65 + i), texto: opt, valor: opt })) || []).map((opcao: any, idx) => {
                         const optText = opcao.texto || opcao.valor || opcao;
                         const optId = opcao.id || String.fromCharCode(65 + idx);
                         const isSelected = readingAnswer === optId || readingAnswer === optText;
@@ -524,15 +526,20 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
                           <button
                             key={idx}
                             onClick={() => setReadingAnswer(optId)}
-                            className={`w-full p-4 text-left border-2 rounded-2xl text-lg font-sans transition-all flex flex-col ${
+                            className={`w-full p-4 text-left border-2 rounded-2xl text-lg font-sans transition-all flex items-center justify-between ${
                               isSelected
-                                ? 'border-blue-500 bg-blue-50 font-bold text-blue-700'
-                                : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50 text-slate-700'
+                                ? 'border-blue-500 bg-blue-50 font-bold text-blue-700 shadow-sm'
+                                : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50 text-slate-700 shadow-sm'
                             }`}
                           >
-                            <div>
-                              <span className="font-bold mr-3 text-slate-400">{optId})</span>
-                              {optText}
+                            <div className="flex items-center gap-4">
+                              <div className={`w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-blue-500 bg-blue-500' : 'border-slate-300 bg-white'}`}>
+                                {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                              </div>
+                              <div>
+                                <span className="font-bold mr-2 text-slate-400">{optId})</span>
+                                {optText}
+                              </div>
                             </div>
                           </button>
                         );
@@ -785,9 +792,9 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
                   
                   {/* Área de resposta matemática */}
                   
-                  {(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.tipo_resposta === 'multipla_escolha' || session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.is_multipla_escolha || extractOptions(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema || '', session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes).options) ? (
+                  {(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.tipo_resposta === 'multipla_escolha' || !!session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.multipla_escolha || session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.is_multipla_escolha || extractOptions(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema || '', session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes).options) ? (
                     <div className="flex flex-col gap-3 mb-8">
-                      {(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.multipla_escolha?.opcoes || extractOptions(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema || '', session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes).options?.map(opt => ({ id: opt.charAt(0), texto: opt, valor: opt })) || []).map((opcao: any, idx) => {
+                      {(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.multipla_escolha?.opcoes || extractOptions(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema || '', session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes).options?.map((opt, i) => ({ id: String.fromCharCode(65 + i), texto: opt, valor: opt })) || []).map((opcao: any, idx) => {
                         const optText = opcao.texto || opcao.valor || opcao;
                         const optId = opcao.id || String.fromCharCode(65 + idx);
                         const isSelected = mathAnswer === optId || mathAnswer === optText;
@@ -796,15 +803,20 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
                           <button
                             key={idx}
                             onClick={() => setMathAnswer(optId)}
-                            className={`w-full p-4 text-left border-2 rounded-2xl text-lg font-sans transition-all flex flex-col ${
+                            className={`w-full p-4 text-left border-2 rounded-2xl text-lg font-sans transition-all flex items-center justify-between ${
                               isSelected
-                                ? 'border-purple-500 bg-purple-50 font-bold text-purple-700'
-                                : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-slate-50 text-slate-700'
+                                ? 'border-purple-500 bg-purple-50 font-bold text-purple-700 shadow-sm'
+                                : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-slate-50 text-slate-700 shadow-sm'
                             }`}
                           >
-                            <div>
-                              <span className="font-bold mr-3 text-slate-400">{optId})</span>
-                              {optText}
+                            <div className="flex items-center gap-4">
+                              <div className={`w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-purple-500 bg-purple-500' : 'border-slate-300 bg-white'}`}>
+                                {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                              </div>
+                              <div>
+                                <span className="font-bold mr-2 text-slate-400">{optId})</span>
+                                {optText}
+                              </div>
                             </div>
                           </button>
                         );
