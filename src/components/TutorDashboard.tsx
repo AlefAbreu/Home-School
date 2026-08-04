@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Settings, Key, CheckCircle2, BookOpen, Calculator, AlertTriangle, Flag, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { GeneratedStudySession } from '../types';
 import { auth } from '../lib/firebase';
+import { listActivitiesFromDrive, listCompletedActivitiesFromDrive, getDriveToken, readActivityFromDrive } from '../lib/drive';
 import { getStudentResults, subscribeToStudentResults, StudentResult, evaluateStudentResult, updateStudentResult, deleteStudentResult } from '../lib/db';
 
 interface TutorDashboardProps {
@@ -14,6 +15,29 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
   const [results, setResults] = useState<StudentResult[]>([]);
   const [expandedTextId, setExpandedTextId] = useState<string | null>(null);
   const [expandedMissionId, setExpandedMissionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'create' | 'all' | 'local'>('create');
+  const [drivePending, setDrivePending] = useState<any[]>([]);
+  const [driveCompleted, setDriveCompleted] = useState<any[]>([]);
+  const [loadingDrive, setLoadingDrive] = useState(false);
+
+  const fetchDriveData = async () => {
+    if (!getDriveToken()) return;
+    setLoadingDrive(true);
+    try {
+      const pending = await listActivitiesFromDrive();
+      setDrivePending(pending);
+      const completed = await listCompletedActivitiesFromDrive();
+      setDriveCompleted(completed);
+    } catch (e) {
+      console.error(e);
+    }
+    setLoadingDrive(false);
+  };
+
+  useEffect(() => {
+    fetchDriveData();
+  }, []);
+
 
   const fetchResults = async () => {
     const res = await getStudentResults();
@@ -21,7 +45,8 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
   };
 
   useEffect(() => {
-    const unsubscribe = subscribeToStudentResults(auth.currentUser!.uid, (res) => {
+    if (!auth.currentUser) return;
+    const unsubscribe = subscribeToStudentResults(auth.currentUser.uid, (res) => {
       setResults(res.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     });
     return () => unsubscribe();
@@ -81,7 +106,7 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
     <div className="container mx-auto p-4 sm:p-8 max-w-4xl">
       <header className="mb-10 text-center">
         <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">Painel do Tutor</h1>
-        <p className="text-slate-500 mt-3 text-lg">Acompanhe as missões concluídas e crie novas atividades.</p>
+        <p className="text-slate-500 mt-3 text-lg">Acompanhe as missões e crie novas atividades.</p>
       </header>
 
       {/* Calendário da Semana */}
@@ -106,6 +131,28 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
         </div>
       </div>
 
+      <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
+        <button
+          onClick={() => setActiveTab('create')}
+          className={`px-4 py-2 rounded-full font-bold whitespace-nowrap transition-colors ${activeTab === 'create' ? 'bg-blue-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+        >
+          Criar Nova Missão
+        </button>
+        <button
+          onClick={() => { setActiveTab('all'); fetchDriveData(); }}
+          className={`px-4 py-2 rounded-full font-bold whitespace-nowrap transition-colors ${activeTab === 'all' ? 'bg-blue-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+        >
+          Todas as Missões Geradas
+        </button>
+        <button
+          onClick={() => setActiveTab('local')}
+          className={`px-4 py-2 rounded-full font-bold whitespace-nowrap transition-colors ${activeTab === 'local' ? 'bg-blue-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+        >
+          Avaliações Locais ({results.length})
+        </button>
+      </div>
+
+      {activeTab === 'create' && (
       <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100">
         <h2 className="text-2xl font-bold mb-8 flex items-center gap-3 text-slate-800">
           <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
@@ -227,9 +274,55 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
           </div>
         </div>
       </div>
+      )}
+
+      {activeTab === 'all' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 mt-8">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-slate-800">
+            <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            Todas as Missões Geradas
+          </h2>
+          
+          {loadingDrive ? (
+            <div className="flex justify-center p-8 text-blue-500 font-bold animate-pulse">Carregando missões do Drive...</div>
+          ) : (
+            <div className="space-y-4">
+              {[...drivePending.map(m => ({...m, status: 'pendente'})), ...driveCompleted.map(m => ({...m, status: 'concluida'}))]
+                .sort((a, b) => new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime())
+                .map(file => (
+                <div key={file.id} className="p-5 border rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 gap-4">
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-lg">{file.name.replace('.json', '')}</h4>
+                    <p className="text-sm text-slate-500">Gerada em: {new Date(file.createdTime).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    {file.status === 'pendente' ? (
+                      <span className="px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm font-bold flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span> Pendente
+                      </span>
+                    ) : (
+                      <span className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-bold flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Concluída
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {drivePending.length === 0 && driveCompleted.length === 0 && (
+                <div className="text-center p-8 text-slate-500">Nenhuma missão encontrada no Google Drive.</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Avaliação de Missões */}
-      {results.length > 0 && (
+      {activeTab === 'local' && (
+      <div className="w-full">
+      {results.length > 0 ? (
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 mt-8">
           <h2 className="text-2xl font-bold text-slate-800 mb-8 flex items-center gap-3">
             <div className="p-2 bg-green-100 text-green-600 rounded-xl">
@@ -388,6 +481,10 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
             ))}
           </div>
         </div>
+      ) : (
+        <div className="text-center p-8 text-slate-500">Nenhuma avaliação local encontrada.</div>
+      )}
+      </div>
       )}
     </div>
   );

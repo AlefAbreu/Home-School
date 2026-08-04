@@ -1,5 +1,5 @@
 export const getDriveToken = () => {
-  return sessionStorage.getItem('drive_token');
+  return localStorage.getItem('drive_token');
 };
 
 const DRIVE_API_URL = 'https://www.googleapis.com/drive/v3/files';
@@ -7,7 +7,7 @@ const UPLOAD_API_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 
 export const findOrCreateFolder = async (folderName: string, parentId?: string): Promise<string> => {
   const token = getDriveToken();
-  if (!token) throw new Error("Google Drive token not found. Please log in again.");
+  if (!token) throw new Error("Google Drive token not found. Por favor, clique em 'Sair' e faça o login novamente para renovar o acesso.");
 
   let query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
   if (parentId) {
@@ -45,7 +45,7 @@ export const findOrCreateFolder = async (folderName: string, parentId?: string):
 
 export const saveActivityToDrive = async (activity: any, fileName: string) => {
   const token = getDriveToken();
-  if (!token) throw new Error("Google Drive token not found.");
+  if (!token) throw new Error("Google Drive token not found. Por favor, clique em 'Sair' e faça o login novamente para renovar o acesso.");
 
   const tutorFolderId = await findOrCreateFolder("Painel Tutor");
 
@@ -79,7 +79,7 @@ export const saveActivityToDrive = async (activity: any, fileName: string) => {
 
 export const listActivitiesFromDrive = async () => {
   const token = getDriveToken();
-  if (!token) throw new Error("Google Drive token not found.");
+  if (!token) throw new Error("Google Drive token not found. Por favor, clique em 'Sair' e faça o login novamente para renovar o acesso.");
 
   const tutorFolderId = await findOrCreateFolder("Painel Tutor");
   
@@ -97,7 +97,7 @@ export const listActivitiesFromDrive = async () => {
 
 export const readActivityFromDrive = async (fileId: string) => {
   const token = getDriveToken();
-  if (!token) throw new Error("Google Drive token not found.");
+  if (!token) throw new Error("Google Drive token not found. Por favor, clique em 'Sair' e faça o login novamente para renovar o acesso.");
 
   const response = await fetch(`${DRIVE_API_URL}/${fileId}?alt=media`, {
     headers: {
@@ -114,7 +114,7 @@ export const readActivityFromDrive = async (fileId: string) => {
 
 export const markActivityAsCompleted = async (fileId: string, resultData: any, originalName: string) => {
   const token = getDriveToken();
-  if (!token) throw new Error("Google Drive token not found.");
+  if (!token) throw new Error("Google Drive token not found. Por favor, clique em 'Sair' e faça o login novamente para renovar o acesso.");
 
   // Save the result to "Atividades Concluídas"
   const completedFolderId = await findOrCreateFolder("Atividades Concluídas");
@@ -153,3 +153,21 @@ export const markActivityAsCompleted = async (fileId: string, resultData: any, o
   });
 };
 
+
+export const listCompletedActivitiesFromDrive = async () => {
+  const token = getDriveToken();
+  if (!token) throw new Error("Google Drive token not found. Por favor, clique em 'Sair' e faça o login novamente para renovar o acesso.");
+
+  const completedFolderId = await findOrCreateFolder("Atividades Concluídas");
+  
+  const query = `'${completedFolderId}' in parents and mimeType='application/json' and trashed=false`;
+  
+  const response = await fetch(`${DRIVE_API_URL}?q=${encodeURIComponent(query)}&fields=files(id, name, createdTime)`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  const data = await response.json();
+  return data.files || [];
+};

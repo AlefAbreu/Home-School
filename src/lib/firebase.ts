@@ -24,7 +24,7 @@ export const signInWithGoogle = async () => {
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
-        sessionStorage.setItem('drive_token', credential.accessToken);
+        localStorage.setItem('drive_token', credential.accessToken);
       }
       return result;
     } catch (popupError: any) {
@@ -41,6 +41,6 @@ export const signInWithGoogle = async () => {
 };
 
 export const logout = () => {
-  sessionStorage.removeItem('drive_token');
+  localStorage.removeItem('drive_token');
   return signOut(auth);
 };

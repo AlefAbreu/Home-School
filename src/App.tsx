@@ -31,7 +31,9 @@ export default function App() {
       getRedirectResult(auth).then((result) => {
         if (result) {
           const credential = GoogleAuthProvider.credentialFromResult(result);
-          
+          if (credential?.accessToken) {
+            localStorage.setItem('drive_token', credential.accessToken);
+          }
         }
       }).catch((error) => {
         console.error("Redirect login error:", error);
@@ -89,7 +91,7 @@ export default function App() {
         alert('Atividade salva com sucesso no Google Drive na pasta "Painel Tutor"!');
       } catch (error) {
         console.error("Failed to save to Drive:", error);
-        alert('Erro ao salvar no Google Drive. Verifique se você concedeu as permissões necessárias.');
+        alert('Erro ao salvar no Google Drive: ' + (error instanceof Error ? error.message : 'Verifique se você concedeu as permissões necessárias.'));
       }
     }
   };
