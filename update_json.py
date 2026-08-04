@@ -1,4 +1,6 @@
-{
+import json
+
+data = {
   "texto_de_apoio": "Era uma vez, numa floresta distante, um pequeno esquilo chamado João. Ele adorava explorar as árvores e procurar nozes escondidas. Um dia, ele encontrou uma noz gigante e brilhante, mas estava muito pesada para carregar sozinho. João precisou pedir ajuda aos seus amigos da floresta para levá-la até sua toca.",
   "metadados_pedagogicos": {
     "tema_central_do_texto": "Amizade e Natureza",
@@ -11,7 +13,7 @@
       "tipo_competencia": "interpretacao_direta",
       "tipo_resposta": "aberta",
       "enunciado_pergunta": "Qual é o nome do personagem principal?",
-      "obriga_justificacao_textual": false,
+      "obriga_justificacao_textual": False,
       "xp_recompensa": 10,
       "orientacao_de_correcao_tutor": "O aluno deve mencionar o nome 'João'."
     },
@@ -20,7 +22,7 @@
       "tipo_competencia": "multipla_escolha",
       "tipo_resposta": "multipla_escolha",
       "enunciado_pergunta": "O que o esquilo João encontrou na floresta?",
-      "obriga_justificacao_textual": false,
+      "obriga_justificacao_textual": False,
       "xp_recompensa": 15,
       "multipla_escolha": {
         "id_resposta_correta": "C",
@@ -53,7 +55,7 @@
       "tipo_competencia": "inferencia_tematica",
       "tipo_resposta": "aberta",
       "enunciado_pergunta": "Por que o personagem estava triste no início da história? Justifique detalhadamente a sua resposta retirando um trecho do texto lido",
-      "obriga_justificacao_textual": true,
+      "obriga_justificacao_textual": True,
       "xp_recompensa": 20,
       "orientacao_de_correcao_tutor": "O aluno deve inferir que ele perdeu seu brinquedo e citar a parte do texto correspondente."
     }
@@ -63,40 +65,16 @@
       {
         "multiplo_selecionado": 2,
         "apresentacao_crescente_completa": [
-          {
-            "fator_a": 2,
-            "fator_b": 1,
-            "produto": 2
-          },
-          {
-            "fator_a": 2,
-            "fator_b": 2,
-            "produto": 4
-          }
+          { "fator_a": 2, "fator_b": 1, "produto": 2 },
+          { "fator_a": 2, "fator_b": 2, "produto": 4 }
         ],
         "bateria_desafio_sequencial": [
-          {
-            "equacao_apresentada": "2 x 1",
-            "resultado_correto": 2,
-            "dica_calculo_mental": "Qualquer número multiplicado por 1 é ele mesmo!"
-          },
-          {
-            "equacao_apresentada": "2 x 2",
-            "resultado_correto": 4,
-            "dica_calculo_mental": "O dobro de 2!"
-          }
+          { "equacao_apresentada": "2 x 1", "resultado_correto": 2, "dica_calculo_mental": "Qualquer número multiplicado por 1 é ele mesmo!" },
+          { "equacao_apresentada": "2 x 2", "resultado_correto": 4, "dica_calculo_mental": "O dobro de 2!" }
         ],
         "bateria_desafio_aleatorio": [
-          {
-            "equacao_apresentada": "2 x 2",
-            "resultado_correto": 4,
-            "dica_calculo_mental": "O dobro de 2!"
-          },
-          {
-            "equacao_apresentada": "2 x 1",
-            "resultado_correto": 2,
-            "dica_calculo_mental": "Qualquer número multiplicado por 1 é ele mesmo!"
-          }
+          { "equacao_apresentada": "2 x 2", "resultado_correto": 4, "dica_calculo_mental": "O dobro de 2!" },
+          { "equacao_apresentada": "2 x 1", "resultado_correto": 2, "dica_calculo_mental": "Qualquer número multiplicado por 1 é ele mesmo!" }
         ]
       }
     ],
@@ -109,7 +87,7 @@
         "enunciado_textual_problema": "Se João tinha R$ 5,00 e comprou um lanche por R$ 3,50, quanto sobrou de troco?",
         "xp_recompensa": 25,
         "passos_para_montagem_guiada": "Subtraia 3,50 de 5,00",
-        "solucao_matematica_esperada": 1.5
+        "solucao_matematica_esperada": 1.50
       },
       {
         "id_problema": 2,
@@ -149,3 +127,6 @@
     ]
   }
 }
+
+with open('public/modelo_atividades.json', 'w') as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)

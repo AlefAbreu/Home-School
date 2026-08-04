@@ -1,8 +1,9 @@
-export interface PedagogyMetadata {
-  tema_central_do_texto: string;
-  nivel_estimado_complexidade: number;
-}
+with open('src/types.ts', 'r') as f:
+    content = f.read()
 
+import re
+
+new_reading_question = """
 export interface MultiplaEscolhaOpcao {
   id: string;
   texto?: string;
@@ -30,26 +31,12 @@ export interface ReadingQuestion {
   opcoes?: string[];
   resposta_correta?: string | number;
 }
+"""
 
-export interface MultiplicationFact {
-  fator_a: number;
-  fator_b: number;
-  produto: number;
-}
+content = re.sub(r'export interface ReadingQuestion \{[\s\S]*?\}', new_reading_question.strip('\n'), content)
 
-export interface BlindChallenge {
-  equacao_apresentada: string;
-  resultado_correto: number;
-  dica_calculo_mental: string;
-}
 
-export interface MultiplicationBlock {
-  multiplo_selecionado: number;
-  apresentacao_crescente_completa: MultiplicationFact[];
-  bateria_desafio_sequencial: BlindChallenge[];
-  bateria_desafio_aleatorio: BlindChallenge[];
-}
-
+new_problem_block = """
 export interface ProblemBlock {
   id_problema: number;
   tema_associado: 'adicao' | 'subtracao' | 'multiplicacao' | 'divisao' | 'operacoes_mistas' | 'moedas_centavos' | 'fracoes_basicas' | string;
@@ -67,14 +54,10 @@ export interface ProblemBlock {
   opcoes?: string[];
   resposta_correta?: string | number;
 }
+"""
 
-export interface MathActivities {
-  blocos_tabuada: MultiplicationBlock[];
-  bloco_operacoes_problemas: ProblemBlock[];
-}
+content = re.sub(r'export interface ProblemBlock \{[\s\S]*?\}', new_problem_block.strip('\n'), content)
 
-export interface GeneratedStudySession {
-  metadados_pedagogicos: PedagogyMetadata;
-  atividades_leitura: ReadingQuestion[];
-  atividades_matematica: MathActivities;
-}
+
+with open('src/types.ts', 'w') as f:
+    f.write(content)

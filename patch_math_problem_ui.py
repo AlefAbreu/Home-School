@@ -50,7 +50,6 @@ new_ui = """
                           </div>
                         </div>
                       </div>
-
                       <p className="text-sm font-bold text-slate-500 mb-4 uppercase tracking-wide">2. Resultado Final</p>
                       <div className="flex items-center justify-center gap-4 bg-slate-50/50 p-6 sm:p-8 rounded-3xl border border-slate-100 mb-8">
                         <span className="text-3xl sm:text-4xl font-bold text-slate-400">R$</span>
@@ -66,7 +65,7 @@ new_ui = """
                   )}
 """
 
-content = re.sub(r'                  <div className="bg-slate-50/50 p-6 sm:p-8 rounded-3xl border border-slate-100 mb-8">[\s\S]*?className="w-40 sm:w-48 p-4 sm:p-5 text-3xl sm:text-4xl font-mono font-bold border-4 border-slate-200 rounded-2xl focus:border-purple-500 outline-none text-center bg-white transition-colors" \n                          placeholder="0,00"\n                        />\n                      </div>', new_ui.strip('\n'), content)
+content = re.sub(r'                  <div className="bg-slate-50/50 p-6 sm:p-8 rounded-3xl border border-slate-100 mb-8">\n                    <p className="text-sm font-bold text-slate-500 mb-4 uppercase tracking-wide">1\. Monte a Expressão Matemática</p>[\s\S]*?className="w-40 sm:w-48 p-4 sm:p-5 text-3xl sm:text-4xl font-mono font-bold border-4 border-slate-200 rounded-2xl focus:border-purple-500 outline-none text-center bg-white transition-colors" \n                      placeholder="0,00"\n                    />\n                  </div>', new_ui.strip('\n'), content)
 
 with open('src/components/ChildDashboard.tsx', 'w') as f:
     f.write(content)

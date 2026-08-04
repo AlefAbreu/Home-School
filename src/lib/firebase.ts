@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, getRedirectResult } from 'firebase/auth';
 
 const firebaseConfig = {
   projectId: "gen-lang-client-0157450384",
@@ -18,7 +18,19 @@ const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive.file');
 
 
+
+// Check for redirect result on load
+getRedirectResult(auth).then((result) => {
+  if (result) {
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (credential?.accessToken) {
+      localStorage.setItem('drive_token', credential.accessToken);
+    }
+  }
+}).catch(console.error);
+
 export const signInWithGoogle = async () => {
+
   try {
     try {
       const result = await signInWithPopup(auth, provider);

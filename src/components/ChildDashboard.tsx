@@ -18,6 +18,37 @@ type StudyPhase = 'reading' | 'math_priming' | 'math_challenge' | 'math_timed' |
 type TabType = 'text' | 'activities';
 
 export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseText, fileId, fileName }) => {
+  // Helper to extract options se a IA colocou no texto
+  const extractOptions = (text: string, opcoes?: string[]) => {
+    if (opcoes && opcoes.length > 0) return { cleanText: text, options: opcoes };
+    
+    // Look for patterns like "A) text" or "a) text" or "1. text" at the end of the question
+    const lines = text.split('\n');
+    const options = [];
+    const cleanLines = [];
+    
+    let inOptions = false;
+    for (const line of lines) {
+      if (line.trim().match(/^([a-eA-E][\)\.]|\d+\.)\s+(.+)$/)) {
+        inOptions = true;
+        const match = line.trim().match(/^([a-eA-E][\)\.]|\d+\.)\s+(.+)$/);
+        if (match) {
+          options.push(match[2].trim());
+        }
+      } else {
+        if (!inOptions) {
+          cleanLines.push(line);
+        }
+      }
+    }
+    
+    if (options.length >= 2) {
+      return { cleanText: cleanLines.join('\n'), options };
+    }
+    
+    return { cleanText: text, options: null };
+  };
+
   const [phase, setPhase] = useState<StudyPhase>('reading');
   const [activeTab, setActiveTab] = useState<TabType>('text');
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -87,7 +118,7 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
 
   const handleReadingSubmit = () => {
     const currentActivity = session.atividades_leitura?.[readingIndex];
-    const isMultipleChoice = currentActivity?.is_multipla_escolha;
+    const isMultipleChoice = currentActivity?.is_multipla_escolha || currentActivity?.tipo_competencia === 'multipla_escolha' || (currentActivity?.opcoes && currentActivity.opcoes.length > 0);
 
     if (isMultipleChoice) {
       const isCorrect = String(readingAnswer).trim() === String(currentActivity?.resposta_correta).trim();
@@ -313,15 +344,19 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
     const currentProblem = session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex];
     let isCorrect = false;
 
-    if (currentProblem?.is_multipla_escolha) {
-      isCorrect = String(mathAnswer).trim() === String(currentProblem.resposta_correta).trim();
+    if (currentProblem?.tipo_resposta === 'multipla_escolha' || currentProblem?.is_multipla_escolha || (currentProblem?.opcoes && currentProblem.opcoes.length > 0)) {
+      isCorrect = currentProblem?.multipla_escolha
+        ? String(mathAnswer).trim().toLowerCase() === String(currentProblem.multipla_escolha.id_resposta_correta).trim().toLowerCase()
+        : String(mathAnswer).trim() === String(currentProblem.resposta_correta).trim();
     } else {
       const correct = currentProblem?.solucao_matematica_esperada || 0;
       isCorrect = (parseFloat(mathAnswer.replace(',', '.')) === correct);
     }
     
+    const feedback = currentProblem?.multipla_escolha?.opcoes?.find((o: any) => o.id.toLowerCase() === String(mathAnswer).toLowerCase())?.feedback_pedagogico;
+    
     if (isCorrect) {
-      setMathFeedback("Problema resolvido com perfeição!");
+      setMathFeedback(feedback || "Problema resolvido com perfeição!");
       
       const probAnswers = [...mathProblemAnswers, {
         problem: currentProblem?.enunciado_textual_problema || '',
@@ -342,7 +377,7 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
         }
       }, 2000);
     } else {
-      setMathFeedback("Ops, tente novamente! Verifique a dica.");
+      setMathFeedback(feedback || "Ops, tente novamente! Verifique a dica.");
       const probAnswers = [...mathProblemAnswers, {
         problem: currentProblem?.enunciado_textual_problema || '',
         expression: problemExpression,
@@ -475,25 +510,33 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
                     Interpretação ({readingIndex + 1}/{session.atividades_leitura?.length || 1})
                   </div>
                   <h3 className="text-xl sm:text-2xl font-bold mb-6 text-slate-800 leading-snug">
-                    {readingIndex + 1}. {session.atividades_leitura?.[readingIndex]?.enunciado_pergunta}
+                    {readingIndex + 1}. {extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).cleanText}
                   </h3>
                   
-                  {session.atividades_leitura?.[readingIndex]?.is_multipla_escolha && session.atividades_leitura?.[readingIndex]?.opcoes ? (
+                  {(session.atividades_leitura?.[readingIndex]?.tipo_resposta === 'multipla_escolha' || session.atividades_leitura?.[readingIndex]?.is_multipla_escolha || session.atividades_leitura?.[readingIndex]?.tipo_competencia === 'multipla_escolha' || extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).options) ? (
                     <div className="flex flex-col gap-3">
-                      {session.atividades_leitura[readingIndex].opcoes.map((opcao, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setReadingAnswer(opcao)}
-                          className={`w-full p-4 text-left border-2 rounded-2xl text-lg font-sans transition-all ${
-                            readingAnswer === opcao
-                              ? 'border-blue-500 bg-blue-50 font-bold text-blue-700'
-                              : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50 text-slate-700'
-                          }`}
-                        >
-                          <span className="font-bold mr-3 text-slate-400">{String.fromCharCode(65 + idx)})</span>
-                          {opcao}
-                        </button>
-                      ))}
+                      {(session.atividades_leitura?.[readingIndex]?.multipla_escolha?.opcoes || extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).options?.map(opt => ({ id: opt.charAt(0), texto: opt, valor: opt })) || []).map((opcao: any, idx) => {
+                        const optText = opcao.texto || opcao.valor || opcao;
+                        const optId = opcao.id || String.fromCharCode(65 + idx);
+                        const isSelected = readingAnswer === optId || readingAnswer === optText;
+                        
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => setReadingAnswer(optId)}
+                            className={`w-full p-4 text-left border-2 rounded-2xl text-lg font-sans transition-all flex flex-col ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50 font-bold text-blue-700'
+                                : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            <div>
+                              <span className="font-bold mr-3 text-slate-400">{optId})</span>
+                              {optText}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   ) : (
                     <textarea 
@@ -737,50 +780,78 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
                   )}
 
                   <h3 className="text-xl sm:text-2xl font-bold mb-8 text-slate-800 leading-snug">
-                    {session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema}
+                    {extractOptions(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema || '', session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes).cleanText}
                   </h3>
                   
                   {/* Área de resposta matemática */}
                   
-                  <div className="bg-slate-50/50 p-6 sm:p-8 rounded-3xl border border-slate-100 mb-8">
-                    <p className="text-sm font-bold text-slate-500 mb-4 uppercase tracking-wide">1. Monte a Expressão Matemática</p>
-                    <div className="flex flex-col gap-4">
-                      <input 
-                        type="text" 
-                        readOnly
-                        value={problemExpression}
-                        className="w-full p-4 sm:p-5 text-2xl sm:text-3xl font-mono font-bold border-4 border-slate-200 rounded-2xl bg-white outline-none focus:border-purple-300 transition-colors" 
-                        placeholder="Ex: 50 - (2 * 10)"
-                      />
-                      <div className="grid grid-cols-5 gap-2 sm:gap-3">
-                        {['7','8','9','+','-','4','5','6','*','/','1','2','3','(',')','0','.','C','<-'].map(btn => (
+                  {(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.tipo_resposta === 'multipla_escolha' || session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.is_multipla_escolha || extractOptions(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema || '', session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes).options) ? (
+                    <div className="flex flex-col gap-3 mb-8">
+                      {(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.multipla_escolha?.opcoes || extractOptions(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema || '', session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes).options?.map(opt => ({ id: opt.charAt(0), texto: opt, valor: opt })) || []).map((opcao: any, idx) => {
+                        const optText = opcao.texto || opcao.valor || opcao;
+                        const optId = opcao.id || String.fromCharCode(65 + idx);
+                        const isSelected = mathAnswer === optId || mathAnswer === optText;
+                        
+                        return (
                           <button
-                            key={btn}
-                            onClick={() => {
-                              if (btn === 'C') setProblemExpression('');
-                              else if (btn === '<-') setProblemExpression(prev => prev.slice(0, -1));
-                              else setProblemExpression(prev => prev + btn);
-                            }}
-                            className="bg-white hover:bg-purple-100 active:bg-purple-200 text-purple-900 font-bold py-3 sm:py-4 rounded-xl sm:rounded-2xl border border-purple-200 shadow-sm transition-colors text-xl sm:text-2xl font-mono"
+                            key={idx}
+                            onClick={() => setMathAnswer(optId)}
+                            className={`w-full p-4 text-left border-2 rounded-2xl text-lg font-sans transition-all flex flex-col ${
+                              isSelected
+                                ? 'border-purple-500 bg-purple-50 font-bold text-purple-700'
+                                : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-slate-50 text-slate-700'
+                            }`}
                           >
-                            {btn}
+                            <div>
+                              <span className="font-bold mr-3 text-slate-400">{optId})</span>
+                              {optText}
+                            </div>
                           </button>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  </div>
-
-                  <p className="text-sm font-bold text-slate-500 mb-4 uppercase tracking-wide">2. Resultado Final</p>
-                  <div className="flex items-center justify-center gap-4 bg-slate-50/50 p-6 sm:p-8 rounded-3xl border border-slate-100 mb-8">
-                    <span className="text-3xl sm:text-4xl font-bold text-slate-400">R$</span>
-                    <input 
-                      type="text" 
-                      value={mathAnswer}
-                      onChange={(e) => setMathAnswer(e.target.value)}
-                      className="w-40 sm:w-48 p-4 sm:p-5 text-3xl sm:text-4xl font-mono font-bold border-4 border-slate-200 rounded-2xl focus:border-purple-500 outline-none text-center bg-white transition-colors" 
-                      placeholder="0,00"
-                    />
-                  </div>
+                  ) : (
+                    <>
+                      <div className="bg-slate-50/50 p-6 sm:p-8 rounded-3xl border border-slate-100 mb-8">
+                        <p className="text-sm font-bold text-slate-500 mb-4 uppercase tracking-wide">1. Monte a Expressão Matemática</p>
+                        <div className="flex flex-col gap-4">
+                          <input 
+                            type="text" 
+                            readOnly
+                            value={problemExpression}
+                            className="w-full p-4 sm:p-5 text-2xl sm:text-3xl font-mono font-bold border-4 border-slate-200 rounded-2xl bg-white outline-none focus:border-purple-300 transition-colors" 
+                            placeholder="Ex: 50 - (2 * 10)"
+                          />
+                          <div className="grid grid-cols-5 gap-2 sm:gap-3">
+                            {['7','8','9','+','-','4','5','6','*','/','1','2','3','(',')','0','.','C','<-'].map(btn => (
+                              <button
+                                key={btn}
+                                onClick={() => {
+                                  if (btn === 'C') setProblemExpression('');
+                                  else if (btn === '<-') setProblemExpression(prev => prev.slice(0, -1));
+                                  else setProblemExpression(prev => prev + btn);
+                                }}
+                                className="bg-white hover:bg-purple-100 active:bg-purple-200 text-purple-900 font-bold py-3 sm:py-4 rounded-xl sm:rounded-2xl border border-purple-200 shadow-sm transition-colors text-xl sm:text-2xl font-mono"
+                              >
+                                {btn}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-sm font-bold text-slate-500 mb-4 uppercase tracking-wide">2. Resultado Final</p>
+                      <div className="flex items-center justify-center gap-4 bg-slate-50/50 p-6 sm:p-8 rounded-3xl border border-slate-100 mb-8">
+                        <span className="text-3xl sm:text-4xl font-bold text-slate-400">R$</span>
+                        <input 
+                          type="text" 
+                          value={mathAnswer}
+                          onChange={(e) => setMathAnswer(e.target.value)}
+                          className="w-40 sm:w-48 p-4 sm:p-5 text-3xl sm:text-4xl font-mono font-bold border-4 border-slate-200 rounded-2xl focus:border-purple-500 outline-none text-center bg-white transition-colors" 
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </>
+                  )}
 
                   {mathFeedback && (
                     <p className={`text-center font-bold text-lg mb-6 ${mathFeedback.includes('perfeição') ? 'text-emerald-600' : 'text-amber-600'}`}>
