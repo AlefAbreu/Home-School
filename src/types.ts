@@ -9,6 +9,7 @@ export interface ReadingQuestion {
   enunciado_pergunta: string;
   obriga_justificacao_textual: boolean;
   orientacao_de_correcao_tutor: string;
+  is_multipla_escolha?: boolean;
   opcoes?: string[];
   resposta_correta?: string | number;
 }
@@ -40,6 +41,7 @@ export interface ProblemBlock {
   necessita_montagem_expressao: boolean;
   passos_para_montagem_guiada: string;
   solucao_matematica_esperada: number | string;
+  is_multipla_escolha?: boolean;
   opcoes?: string[];
   resposta_correta?: string | number;
 }

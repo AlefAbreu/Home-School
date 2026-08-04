@@ -86,20 +86,52 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
   };
 
   const handleReadingSubmit = () => {
+    const currentActivity = session.atividades_leitura?.[readingIndex];
+    const isMultipleChoice = currentActivity?.is_multipla_escolha;
+
+    if (isMultipleChoice) {
+      const isCorrect = String(readingAnswer).trim() === String(currentActivity?.resposta_correta).trim();
+      setReadingFeedback(isCorrect ? "Correto! Brilhante dedução." : "Ops, essa não é a resposta correta!");
+
+      const newAnswers = [...readingAnswers, {
+        question: currentActivity?.enunciado_pergunta || '',
+        answer: readingAnswer,
+        isCorrect: isCorrect
+      }];
+      setReadingAnswers(newAnswers);
+
+      setTimeout(() => {
+        setReadingFeedback(null);
+        setReadingAnswer('');
+        
+        if (readingIndex < (session.atividades_leitura?.length || 1) - 1) {
+          setReadingIndex(prev => prev + 1);
+        } else {
+          if (session.atividades_matematica?.blocos_tabuada && session.atividades_matematica.blocos_tabuada.length > 0) {
+            setPhase('math_priming');
+          } else if (session.atividades_matematica?.bloco_operacoes_problemas && session.atividades_matematica.bloco_operacoes_problemas.length > 0) {
+            setPhase('math_problem');
+          } else {
+            completeSession([], mathChallengeAnswers, newAnswers);
+          }
+        }
+      }, 2000);
+      return;
+    }
+
     const isShort = readingAnswer.trim().length < 20;
     
-    if (session.atividades_leitura?.[readingIndex]?.obriga_justificacao_textual && isShort) {
+    if (currentActivity?.obriga_justificacao_textual && isShort) {
       setReadingFeedback("Excelente início! Todavia, recorde-se da nossa regra: Não se esqueça de comprovar o porquê referenciando explicitamente a parte do texto onde extraiu a sua brilhante dedução!");
     } else {
       setReadingFeedback("Muito bem! Resposta submetida com sucesso.");
       
       const newAnswers = [...readingAnswers, {
-        question: session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '',
+        question: currentActivity?.enunciado_pergunta || '',
         answer: readingAnswer,
         isCorrect: null
       }];
       setReadingAnswers(newAnswers);
-
       setTimeout(() => {
         setReadingFeedback(null);
         setReadingAnswer('');
@@ -279,9 +311,16 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
 
   const handleMathProblemSubmit = async () => {
     const currentProblem = session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex];
-    const correct = currentProblem?.solucao_matematica_esperada || 0;
+    let isCorrect = false;
+
+    if (currentProblem?.is_multipla_escolha) {
+      isCorrect = String(mathAnswer).trim() === String(currentProblem.resposta_correta).trim();
+    } else {
+      const correct = currentProblem?.solucao_matematica_esperada || 0;
+      isCorrect = (parseFloat(mathAnswer.replace(',', '.')) === correct);
+    }
     
-    if (parseFloat(mathAnswer.replace(',', '.')) === correct) {
+    if (isCorrect) {
       setMathFeedback("Problema resolvido com perfeição!");
       
       const probAnswers = [...mathProblemAnswers, {
@@ -291,7 +330,6 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
         correct: true
       }];
       setMathProblemAnswers(probAnswers);
-
       setTimeout(() => {
         setMathFeedback(null);
         setMathAnswer('');
@@ -305,6 +343,15 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
       }, 2000);
     } else {
       setMathFeedback("Ops, tente novamente! Verifique a dica.");
+      const probAnswers = [...mathProblemAnswers, {
+        problem: currentProblem?.enunciado_textual_problema || '',
+        expression: problemExpression,
+        answer: mathAnswer,
+        correct: false
+      }];
+      // For problems, we don't block the user, just tell them to retry? Wait, the original code doesn't move forward if incorrect.
+      // We should just set feedback. We don't save the answer until it's correct?
+      // Wait, let's keep the original behavior: it blocks until correct.
     }
   };
 

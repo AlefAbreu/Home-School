@@ -1,39 +1,10 @@
+import re
+
 with open('src/components/TutorDashboard.tsx', 'r') as f:
     content = f.read()
 
-import re
-
-new_functions = """
-  const toggleNeedsReview = async (resultId: string, section: 'reading' | 'challenge' | 'problem', index: number) => {
-    await updateStudentResult(resultId, (result) => {
-      if (section === 'reading' && result.readingAnswers[index]) {
-        result.readingAnswers[index].needsReview = !result.readingAnswers[index].needsReview;
-      } else if (section === 'challenge' && result.mathChallengeAnswers[index]) {
-        result.mathChallengeAnswers[index].needsReview = !result.mathChallengeAnswers[index].needsReview;
-      } else if (section === 'problem' && result.mathProblemAnswers[index]) {
-        result.mathProblemAnswers[index].needsReview = !result.mathProblemAnswers[index].needsReview;
-      }
-      return result;
-    });
-    await fetchResults();
-  };
-
-  const markReadingAnswer = async (resultId: string, index: number, isCorrect: boolean) => {
-    await updateStudentResult(resultId, (result) => {
-      if (result.readingAnswers[index]) {
-        result.readingAnswers[index].isCorrect = isCorrect;
-        result.readingAnswers[index].needsReview = false; // clear review if marked
-      }
-      return result;
-    });
-    await fetchResults();
-  };
-"""
-
-content = re.sub(r'  const toggleNeedsReview = async.*?await fetchResults\(\);\n  \};', new_functions.strip('\n'), content, flags=re.DOTALL)
-
-
 reading_ui = """
+                      {result.readingAnswers.map((ra, idx) => (
                         <div key={idx} className={`bg-white p-3 rounded border text-sm mb-2 relative pr-10 ${ra.needsReview ? 'border-amber-400 bg-amber-50' : (ra.isCorrect === true ? 'border-emerald-400 bg-emerald-50' : (ra.isCorrect === false ? 'border-red-400 bg-red-50' : 'border-slate-200'))}`}>
                           <div className="absolute right-3 top-3 flex flex-col gap-1">
                             <button 
@@ -61,6 +32,15 @@ reading_ui = """
                                 </button>
                               </>
                             )}
+                            {ra.isCorrect !== null && (
+                                <button 
+                                  onClick={() => markReadingAnswer(result.id, idx, null as any)}
+                                  className="p-1 rounded text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-colors"
+                                  title="Desfazer Correção"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
                           </div>
                           
                           {ra.askedForHelp && (
@@ -68,8 +48,8 @@ reading_ui = """
                               <AlertTriangle className="w-3 h-3" /> Pediu Ajuda
                             </div>
                           )}
-                          <p className="font-bold text-slate-700 mb-1 pr-6">Q: {ra.question}</p>
-                          <p className="text-slate-600"><strong>R:</strong> {ra.answer || <span className="italic text-slate-400">(Em branco)</span>}</p>
+                          <p className="font-bold text-slate-700 mb-1 pr-8">Q: {ra.question}</p>
+                          <p className="text-slate-600 pr-8"><strong>R:</strong> {ra.answer || <span className="italic text-slate-400">(Em branco)</span>}</p>
                           
                           {ra.isCorrect !== null && (
                             <div className={`mt-2 font-bold ${ra.isCorrect ? 'text-emerald-600' : 'text-red-600'}`}>
@@ -77,10 +57,10 @@ reading_ui = """
                             </div>
                           )}
                         </div>
+                      ))}
 """
 
-# Let's replace the block mapping `result.readingAnswers.map`
-# First, let's find the exact string.
+content = re.sub(r'                      \{result.readingAnswers.map\(\(ra, idx\) => \([\s\S]*?                        </div>\n                      \}\)\}', reading_ui.strip('\n'), content)
 
 with open('src/components/TutorDashboard.tsx', 'w') as f:
     f.write(content)

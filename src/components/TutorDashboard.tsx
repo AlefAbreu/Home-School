@@ -100,6 +100,17 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
     await fetchResults();
   };
 
+  const markReadingAnswer = async (resultId: string, index: number, isCorrect: boolean) => {
+    await updateStudentResult(resultId, (result) => {
+      if (result.readingAnswers[index]) {
+        result.readingAnswers[index].isCorrect = isCorrect;
+        result.readingAnswers[index].needsReview = false; // clear review if marked
+      }
+      return result;
+    });
+    await fetchResults();
+  };
+
   const today = new Date();
   const weekDays = Array.from({length: 7}).map((_, i) => {
     const d = new Date();
