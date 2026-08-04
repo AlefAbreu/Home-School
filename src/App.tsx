@@ -20,7 +20,7 @@ import { auth, signInWithGoogle, logout } from './lib/firebase';
 import { User, onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'tutor' | 'child'>('tutor');
+  const [activeTab, setActiveTab] = useState<'tutor' | 'child'>('child');
   const [sessionData, setSessionData] = useState<GeneratedStudySession | null>(null);
   const [baseText, setBaseText] = useState('');
   const [isApproved, setIsApproved] = useState(false);
