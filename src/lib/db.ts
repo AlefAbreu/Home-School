@@ -11,9 +11,9 @@ export interface StudentResult {
   id: string;
   date: string;
   readingText?: string;
-  readingAnswers: { question: string; answer: string; isCorrect: boolean | null; needsReview?: boolean; askedForHelp?: boolean }[];
-  mathChallengeAnswers: { question: string; answer: string; correct: boolean; mistakes: string[]; needsReview?: boolean; askedForHelp?: boolean }[];
-  mathProblemAnswers: { problem: string; expression: string; answer: string; correct: boolean; needsReview?: boolean; askedForHelp?: boolean }[];
+  readingAnswers: { question: string; answer: string; isCorrect: boolean | null; needsReview?: boolean; askedForHelp?: boolean; correctAnswer?: string; tutorOrientation?: string }[];
+  mathChallengeAnswers: { question: string; answer: string; correct: boolean; mistakes: string[]; needsReview?: boolean; askedForHelp?: boolean; correctAnswer?: string | number }[];
+  mathProblemAnswers: { problem: string; expression: string; answer: string; correct: boolean; needsReview?: boolean; askedForHelp?: boolean; correctAnswer?: string | number; steps?: string }[];
   evaluated: boolean;
 }
 

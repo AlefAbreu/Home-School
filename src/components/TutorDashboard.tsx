@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Settings, Key, CheckCircle2, BookOpen, Calculator, AlertTriangle, Flag, ChevronDown, ChevronUp, Trash2, Calendar } from 'lucide-react';
 import { GeneratedStudySession } from '../types';
 import { auth } from '../lib/firebase';
-import { listActivitiesFromDrive, listCompletedActivitiesFromDrive, getDriveToken, readActivityFromDrive } from '../lib/drive';
+import { listActivitiesFromDrive, listCompletedActivitiesFromDrive, getDriveToken, readActivityFromDrive, deleteActivityFromDrive } from '../lib/drive';
 import { getStudentResults, subscribeToStudentResults, StudentResult, evaluateStudentResult, updateStudentResult, deleteStudentResult, subscribeToActiveSession } from '../lib/db';
 
 interface TutorDashboardProps {
@@ -65,7 +65,10 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
       }
     });
 
-    return () => {
+  
+
+
+  return () => {
       unsubscribe();
       unsubscribeSession();
     };
@@ -130,6 +133,21 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
       isToday: i === 6
     };
   });
+
+  const handleDeleteMission = async (id: string, status: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Tem certeza que deseja excluir esta missão do Google Drive?')) return;
+    
+    try {
+      setLoadingDrive(true);
+      await deleteActivityFromDrive(id);
+      await fetchDriveData();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao excluir missão. Verifique suas permissões no Drive.');
+      setLoadingDrive(false);
+    }
+  };
 
   const weekDayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -386,7 +404,7 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
                           <h4 className="font-bold text-slate-800 text-lg">{file.name.replace('.json', '')}</h4>
                           <p className="text-sm text-slate-500">Gerada em: {new Date(file.createdTime).toLocaleString()}</p>
                         </div>
-                        <div>
+                        <div className="flex items-center gap-3">
                           {file.status === 'em_andamento' ? (
                             <span className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-bold flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-blue-500"></span> Em Andamento
@@ -396,6 +414,13 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
                               <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Concluída
                             </span>
                           )}
+                          <button
+                            onClick={(e) => handleDeleteMission(file.id, file.status, e)}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Excluir Missão"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -498,7 +523,13 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
                             </div>
                           )}
                           <p className="font-bold text-slate-700 mb-1 pr-6">Q: {ra.question}</p>
-                          <p className="text-slate-600"><strong>R:</strong> {ra.answer || <span className="italic text-slate-400">(Em branco)</span>}</p>
+                          <p className="text-slate-600 mb-2"><strong>R:</strong> {ra.answer || <span className="italic text-slate-400">(Em branco)</span>}</p>
+                          {(ra.correctAnswer || ra.tutorOrientation) && (
+                            <div className="bg-blue-50 p-2 rounded text-blue-800 text-xs border border-blue-100">
+                              {ra.correctAnswer && <p><strong>Gabarito:</strong> {ra.correctAnswer}</p>}
+                              {ra.tutorOrientation && <p><strong>Orientação:</strong> {ra.tutorOrientation}</p>}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

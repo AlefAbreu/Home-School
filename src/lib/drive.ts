@@ -154,6 +154,22 @@ export const markActivityAsCompleted = async (fileId: string, resultData: any, o
 };
 
 
+export const deleteActivityFromDrive = async (fileId: string) => {
+  const token = getDriveToken();
+  if (!token) throw new Error("Google Drive token not found. Por favor, clique em 'Sair' e faça o login novamente para renovar o acesso.");
+
+  const response = await fetch(`${DRIVE_API_URL}/${fileId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error("Failed to delete activity from Drive.");
+  }
+};
+
 export const listCompletedActivitiesFromDrive = async () => {
   const token = getDriveToken();
   if (!token) throw new Error("Google Drive token not found. Por favor, clique em 'Sair' e faça o login novamente para renovar o acesso.");

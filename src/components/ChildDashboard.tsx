@@ -120,16 +120,41 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
     const currentActivity = session.atividades_leitura?.[readingIndex];
     const isMultipleChoice = currentActivity?.tipo_resposta === 'multipla_escolha' || !!currentActivity?.multipla_escolha || currentActivity?.is_multipla_escolha || currentActivity?.tipo_competencia === 'multipla_escolha' || (currentActivity?.opcoes && currentActivity.opcoes.length > 0);
     if (isMultipleChoice) {
-      const isCorrect = currentActivity?.multipla_escolha 
-        ? String(readingAnswer).trim().toLowerCase() === String(currentActivity.multipla_escolha.id_resposta_correta).trim().toLowerCase()
-        : String(readingAnswer).trim() === String(currentActivity?.resposta_correta).trim();
-      const feedback = currentActivity?.multipla_escolha?.opcoes?.find((o: any) => o.id.toLowerCase() === readingAnswer.toLowerCase())?.feedback_pedagogico;
+      let isCorrect = false;
+      const givenAns = String(readingAnswer).replace(/\)/g, '').trim().toLowerCase();
+      
+      if (currentActivity?.multipla_escolha) {
+        const correctId = String(currentActivity.multipla_escolha.id_resposta_correta).replace(/\)/g, '').trim().toLowerCase();
+        isCorrect = (givenAns === correctId);
+        if (!isCorrect) {
+          const selectedOption = currentActivity.multipla_escolha.opcoes?.find((o: any) => String(o.id).replace(/\)/g, '').trim().toLowerCase() === givenAns);
+          if (selectedOption) {
+             const selectedText = String(selectedOption.texto || selectedOption.valor || '').trim().toLowerCase();
+             const rawCorrect = String(currentActivity.multipla_escolha.id_resposta_correta).trim().toLowerCase();
+             isCorrect = (selectedText === correctId) || (selectedText === rawCorrect) || rawCorrect.includes(selectedText);
+          }
+        }
+      } else {
+        const respCorreta = String(currentActivity?.resposta_correta || '').trim().toLowerCase();
+        const optionsArray = extractOptions(currentActivity?.enunciado_pergunta || '', currentActivity?.opcoes).options?.map((opt: any, i: number) => ({ id: String.fromCharCode(65 + i).toLowerCase(), texto: opt })) || [];
+        const selectedOption = optionsArray.find((o: any) => o.id === givenAns);
+        const selectedText = selectedOption ? String(selectedOption.texto).trim().toLowerCase() : '';
+        
+        isCorrect = (givenAns === respCorreta.replace(/\)/g, '')) || 
+                    (selectedText !== '' && selectedText === respCorreta) ||
+                    (selectedText !== '' && respCorreta.includes(selectedText)) ||
+                    (respCorreta.startsWith(givenAns + ")"));
+      }
+
+      const feedback = currentActivity?.multipla_escolha?.opcoes?.find((o: any) => String(o.id).replace(/\)/g, '').trim().toLowerCase() === givenAns)?.feedback_pedagogico;
       setReadingFeedback(isCorrect ? (feedback || "Correto! Brilhante dedução.") : (feedback || "Ops, essa não é a resposta correta!"));
 
       const newAnswers = [...readingAnswers, {
         question: currentActivity?.enunciado_pergunta || '',
         answer: readingAnswer,
-        isCorrect: isCorrect
+        isCorrect: isCorrect,
+        correctAnswer: currentActivity?.multipla_escolha?.id_resposta_correta || currentActivity?.resposta_correta || '',
+        tutorOrientation: currentActivity?.orientacao_de_correcao_tutor
       }];
       setReadingAnswers(newAnswers);
 
@@ -162,7 +187,8 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
       const newAnswers = [...readingAnswers, {
         question: currentActivity?.enunciado_pergunta || '',
         answer: readingAnswer,
-        isCorrect: null
+        isCorrect: null,
+        tutorOrientation: currentActivity?.orientacao_de_correcao_tutor
       }];
       setReadingAnswers(newAnswers);
       setTimeout(() => {
@@ -185,11 +211,14 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
   };
 
   const handleAskForHelpReading = () => {
+    const currentActivity = session.atividades_leitura?.[readingIndex];
     const newAnswers = [...readingAnswers, {
-      question: session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '',
+      question: currentActivity?.enunciado_pergunta || '',
       answer: readingAnswer,
       isCorrect: null,
-      askedForHelp: true
+      askedForHelp: true,
+      correctAnswer: currentActivity?.multipla_escolha?.id_resposta_correta || currentActivity?.resposta_correta || '',
+      tutorOrientation: currentActivity?.orientacao_de_correcao_tutor
     }];
     setReadingAnswers(newAnswers);
     setReadingFeedback(null);
@@ -225,7 +254,8 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
         question: currentTable.bateria_desafio_sequencial[challengeIndex].equacao_apresentada,
         answer: mathAnswer,
         correct: true,
-        mistakes: currentMistakes
+        mistakes: currentMistakes,
+        correctAnswer: correct
       }];
       setMathChallengeAnswers(newAnswers);
       setCurrentMistakes([]);
@@ -253,7 +283,8 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
       answer: mathAnswer,
       correct: false,
       mistakes: currentMistakes,
-      askedForHelp: true
+      askedForHelp: true,
+      correctAnswer: currentTable.bateria_desafio_sequencial[challengeIndex].resultado_correto
     }];
     setMathChallengeAnswers(newAnswers);
     setCurrentMistakes([]);
@@ -280,7 +311,8 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
         question: currentTable.bateria_desafio_aleatorio[challengeIndex].equacao_apresentada,
         answer: mathAnswer,
         correct: true,
-        mistakes: currentMistakes
+        mistakes: currentMistakes,
+        correctAnswer: correct
       }];
       setMathChallengeAnswers(newAnswers);
       setCurrentMistakes([]);
@@ -318,7 +350,8 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
       answer: mathAnswer,
       correct: false,
       mistakes: currentMistakes,
-      askedForHelp: true
+      askedForHelp: true,
+      correctAnswer: currentTable.bateria_desafio_aleatorio[challengeIndex].resultado_correto
     }];
     setMathChallengeAnswers(newAnswers);
     setCurrentMistakes([]);
@@ -347,9 +380,30 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
     let isCorrect = false;
 
     if (currentProblem?.tipo_resposta === 'multipla_escolha' || !!currentProblem?.multipla_escolha || currentProblem?.is_multipla_escolha || (currentProblem?.opcoes && currentProblem.opcoes.length > 0)) {
-      isCorrect = currentProblem?.multipla_escolha
-        ? String(mathAnswer).trim().toLowerCase() === String(currentProblem.multipla_escolha.id_resposta_correta).trim().toLowerCase()
-        : String(mathAnswer).trim() === String(currentProblem.resposta_correta).trim();
+      const givenAns = String(mathAnswer).replace(/\)/g, '').trim().toLowerCase();
+      
+      if (currentProblem?.multipla_escolha) {
+        const correctId = String(currentProblem.multipla_escolha.id_resposta_correta).replace(/\)/g, '').trim().toLowerCase();
+        isCorrect = (givenAns === correctId);
+        if (!isCorrect) {
+          const selectedOption = currentProblem.multipla_escolha.opcoes?.find((o: any) => String(o.id).replace(/\)/g, '').trim().toLowerCase() === givenAns);
+          if (selectedOption) {
+             const selectedText = String(selectedOption.texto || selectedOption.valor || '').trim().toLowerCase();
+             const rawCorrect = String(currentProblem.multipla_escolha.id_resposta_correta).trim().toLowerCase();
+             isCorrect = (selectedText === correctId) || (selectedText === rawCorrect) || rawCorrect.includes(selectedText);
+          }
+        }
+      } else {
+        const respCorreta = String(currentProblem?.resposta_correta || '').trim().toLowerCase();
+        const optionsArray = extractOptions(currentProblem?.enunciado_textual_problema || '', currentProblem?.opcoes).options?.map((opt: any, i: number) => ({ id: String.fromCharCode(65 + i).toLowerCase(), texto: opt })) || [];
+        const selectedOption = optionsArray.find((o: any) => o.id === givenAns);
+        const selectedText = selectedOption ? String(selectedOption.texto).trim().toLowerCase() : '';
+        
+        isCorrect = (givenAns === respCorreta.replace(/\)/g, '')) || 
+                    (selectedText !== '' && selectedText === respCorreta) ||
+                    (selectedText !== '' && respCorreta.includes(selectedText)) ||
+                    (respCorreta.startsWith(givenAns + ")"));
+      }
     } else {
       const correct = currentProblem?.solucao_matematica_esperada || 0;
       isCorrect = (parseFloat(mathAnswer.replace(',', '.')) === correct);
@@ -364,7 +418,9 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
         problem: currentProblem?.enunciado_textual_problema || '',
         expression: problemExpression,
         answer: mathAnswer,
-        correct: true
+        correct: true,
+        correctAnswer: currentProblem?.multipla_escolha?.id_resposta_correta || currentProblem?.resposta_correta || currentProblem?.solucao_matematica_esperada,
+        steps: currentProblem?.passos_para_montagem_guiada
       }];
       setMathProblemAnswers(probAnswers);
       setTimeout(() => {
@@ -384,7 +440,9 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
         problem: currentProblem?.enunciado_textual_problema || '',
         expression: problemExpression,
         answer: mathAnswer,
-        correct: false
+        correct: false,
+        correctAnswer: currentProblem?.multipla_escolha?.id_resposta_correta || currentProblem?.resposta_correta || currentProblem?.solucao_matematica_esperada,
+        steps: currentProblem?.passos_para_montagem_guiada
       }];
       // For problems, we don't block the user, just tell them to retry? Wait, the original code doesn't move forward if incorrect.
       // We should just set feedback. We don't save the answer until it's correct?
@@ -399,7 +457,9 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
       expression: problemExpression,
       answer: mathAnswer,
       correct: false,
-      askedForHelp: true
+      askedForHelp: true,
+      correctAnswer: currentProblem?.multipla_escolha?.id_resposta_correta || currentProblem?.resposta_correta || currentProblem?.solucao_matematica_esperada,
+      steps: currentProblem?.passos_para_montagem_guiada
     }];
     setMathProblemAnswers(probAnswers);
     
@@ -518,9 +578,10 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
                   {(session.atividades_leitura?.[readingIndex]?.tipo_resposta === 'multipla_escolha' || !!session.atividades_leitura?.[readingIndex]?.multipla_escolha || session.atividades_leitura?.[readingIndex]?.is_multipla_escolha || session.atividades_leitura?.[readingIndex]?.tipo_competencia === 'multipla_escolha' || extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).options) ? (
                     <div className="flex flex-col gap-3">
                       {(session.atividades_leitura?.[readingIndex]?.multipla_escolha?.opcoes || extractOptions(session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '', session.atividades_leitura?.[readingIndex]?.opcoes).options?.map((opt, i) => ({ id: String.fromCharCode(65 + i), texto: opt, valor: opt })) || []).map((opcao: any, idx) => {
-                        const optText = opcao.texto || opcao.valor || opcao;
-                        const optId = opcao.id || String.fromCharCode(65 + idx);
-                        const isSelected = readingAnswer === optId || readingAnswer === optText;
+                        const optText = typeof opcao === 'string' ? opcao : (opcao.texto || opcao.valor || JSON.stringify(opcao));
+                        const rawId = opcao.id !== undefined && opcao.id !== null ? String(opcao.id) : String.fromCharCode(65 + idx);
+                        const optId = rawId.replace(/\)/g, '').trim().toUpperCase();
+                        const isSelected = readingAnswer === optId;
                         
                         return (
                           <button
@@ -795,9 +856,10 @@ export const ChildDashboard: React.FC<ChildDashboardProps> = ({ session, baseTex
                   {(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.tipo_resposta === 'multipla_escolha' || !!session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.multipla_escolha || session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.is_multipla_escolha || extractOptions(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema || '', session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes).options) ? (
                     <div className="flex flex-col gap-3 mb-8">
                       {(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.multipla_escolha?.opcoes || extractOptions(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.enunciado_textual_problema || '', session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes).options?.map((opt, i) => ({ id: String.fromCharCode(65 + i), texto: opt, valor: opt })) || []).map((opcao: any, idx) => {
-                        const optText = opcao.texto || opcao.valor || opcao;
-                        const optId = opcao.id || String.fromCharCode(65 + idx);
-                        const isSelected = mathAnswer === optId || mathAnswer === optText;
+                        const optText = typeof opcao === 'string' ? opcao : (opcao.texto || opcao.valor || JSON.stringify(opcao));
+                        const rawId = opcao.id !== undefined && opcao.id !== null ? String(opcao.id) : String.fromCharCode(65 + idx);
+                        const optId = rawId.replace(/\)/g, '').trim().toUpperCase();
+                        const isSelected = mathAnswer === optId;
                         
                         return (
                           <button

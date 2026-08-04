@@ -1,35 +1,188 @@
+import re
+
 with open('src/components/ChildDashboard.tsx', 'r') as f:
     content = f.read()
 
-import re
+reading_newAnswers_1_old = """      const newAnswers = [...readingAnswers, {
+        question: currentActivity?.enunciado_pergunta || '',
+        answer: readingAnswer,
+        isCorrect: isCorrect
+      }];"""
+      
+reading_newAnswers_1_new = """      const newAnswers = [...readingAnswers, {
+        question: currentActivity?.enunciado_pergunta || '',
+        answer: readingAnswer,
+        isCorrect: isCorrect,
+        correctAnswer: currentActivity?.multipla_escolha?.id_resposta_correta || currentActivity?.resposta_correta || '',
+        tutorOrientation: currentActivity?.orientacao_de_correcao_tutor
+      }];"""
 
-# Patch reading submit
-content = re.sub(
-    r'const isMultipleChoice = currentActivity\?\.is_multipla_escolha;',
-    r"const isMultipleChoice = currentActivity?.is_multipla_escolha || currentActivity?.tipo_competencia === 'multipla_escolha' || (currentActivity?.opcoes && currentActivity.opcoes.length > 0);",
-    content
-)
+content = content.replace(reading_newAnswers_1_old, reading_newAnswers_1_new)
 
-# Patch math submit
-content = re.sub(
-    r'if \(currentProblem\?\.is_multipla_escolha\) \{',
-    r"if (currentProblem?.is_multipla_escolha || (currentProblem?.opcoes && currentProblem.opcoes.length > 0)) {",
-    content
-)
+reading_newAnswers_2_old = """      const newAnswers = [...readingAnswers, {
+        question: currentActivity?.enunciado_pergunta || '',
+        answer: readingAnswer,
+        isCorrect: null
+      }];"""
+      
+reading_newAnswers_2_new = """      const newAnswers = [...readingAnswers, {
+        question: currentActivity?.enunciado_pergunta || '',
+        answer: readingAnswer,
+        isCorrect: null,
+        tutorOrientation: currentActivity?.orientacao_de_correcao_tutor
+      }];"""
+      
+content = content.replace(reading_newAnswers_2_old, reading_newAnswers_2_new)
 
-# Patch reading UI
-content = re.sub(
-    r'\{session\.atividades_leitura\?\.\[readingIndex\]\?\.is_multipla_escolha && session\.atividades_leitura\?\.\[readingIndex\]\?\.opcoes \? \(',
-    r"{(session.atividades_leitura?.[readingIndex]?.is_multipla_escolha || session.atividades_leitura?.[readingIndex]?.tipo_competencia === 'multipla_escolha' || (session.atividades_leitura?.[readingIndex]?.opcoes && session.atividades_leitura[readingIndex].opcoes.length > 0)) && session.atividades_leitura?.[readingIndex]?.opcoes ? (",
-    content
-)
+reading_newAnswers_3_old = """    const newAnswers = [...readingAnswers, {
+      question: session.atividades_leitura?.[readingIndex]?.enunciado_pergunta || '',
+      answer: readingAnswer,
+      isCorrect: null,
+      askedForHelp: true
+    }];"""
+    
+reading_newAnswers_3_new = """    const currentActivity = session.atividades_leitura?.[readingIndex];
+    const newAnswers = [...readingAnswers, {
+      question: currentActivity?.enunciado_pergunta || '',
+      answer: readingAnswer,
+      isCorrect: null,
+      askedForHelp: true,
+      correctAnswer: currentActivity?.multipla_escolha?.id_resposta_correta || currentActivity?.resposta_correta || '',
+      tutorOrientation: currentActivity?.orientacao_de_correcao_tutor
+    }];"""
+    
+content = content.replace(reading_newAnswers_3_old, reading_newAnswers_3_new)
 
-# Patch math UI
-content = re.sub(
-    r'\{session\.atividades_matematica\?\.bloco_operacoes_problemas\?\.\[problemIndex\]\?\.is_multipla_escolha && session\.atividades_matematica\?\.bloco_operacoes_problemas\?\.\[problemIndex\]\?\.opcoes \? \(',
-    r"{(session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.is_multipla_escolha || (session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes && session.atividades_matematica.bloco_operacoes_problemas[problemIndex].opcoes.length > 0)) && session.atividades_matematica?.bloco_operacoes_problemas?.[problemIndex]?.opcoes ? (",
-    content
-)
+math_challenge_1_old = """      const newAnswers = [...mathChallengeAnswers, {
+        question: currentTable.bateria_desafio_sequencial[challengeIndex].equacao_apresentada,
+        answer: mathAnswer,
+        correct: true,
+        mistakes: currentMistakes
+      }];"""
+      
+math_challenge_1_new = """      const newAnswers = [...mathChallengeAnswers, {
+        question: currentTable.bateria_desafio_sequencial[challengeIndex].equacao_apresentada,
+        answer: mathAnswer,
+        correct: true,
+        mistakes: currentMistakes,
+        correctAnswer: correct
+      }];"""
+      
+content = content.replace(math_challenge_1_old, math_challenge_1_new)
+
+math_challenge_2_old = """    const newAnswers = [...mathChallengeAnswers, {
+      question: currentTable.bateria_desafio_sequencial[challengeIndex].equacao_apresentada,
+      answer: mathAnswer,
+      correct: false,
+      mistakes: currentMistakes,
+      askedForHelp: true
+    }];"""
+    
+math_challenge_2_new = """    const newAnswers = [...mathChallengeAnswers, {
+      question: currentTable.bateria_desafio_sequencial[challengeIndex].equacao_apresentada,
+      answer: mathAnswer,
+      correct: false,
+      mistakes: currentMistakes,
+      askedForHelp: true,
+      correctAnswer: currentTable.bateria_desafio_sequencial[challengeIndex].resultado_correto
+    }];"""
+    
+content = content.replace(math_challenge_2_old, math_challenge_2_new)
+
+
+math_timed_1_old = """      const newAnswers = [...mathChallengeAnswers, {
+        question: currentTable.bateria_desafio_aleatorio[challengeIndex].equacao_apresentada,
+        answer: mathAnswer,
+        correct: true,
+        mistakes: currentMistakes
+      }];"""
+
+math_timed_1_new = """      const newAnswers = [...mathChallengeAnswers, {
+        question: currentTable.bateria_desafio_aleatorio[challengeIndex].equacao_apresentada,
+        answer: mathAnswer,
+        correct: true,
+        mistakes: currentMistakes,
+        correctAnswer: correct
+      }];"""
+      
+content = content.replace(math_timed_1_old, math_timed_1_new)
+
+math_timed_2_old = """    const newAnswers = [...mathChallengeAnswers, {
+      question: currentTable.bateria_desafio_aleatorio[challengeIndex].equacao_apresentada,
+      answer: mathAnswer,
+      correct: false,
+      mistakes: currentMistakes,
+      askedForHelp: true
+    }];"""
+    
+math_timed_2_new = """    const newAnswers = [...mathChallengeAnswers, {
+      question: currentTable.bateria_desafio_aleatorio[challengeIndex].equacao_apresentada,
+      answer: mathAnswer,
+      correct: false,
+      mistakes: currentMistakes,
+      askedForHelp: true,
+      correctAnswer: currentTable.bateria_desafio_aleatorio[challengeIndex].resultado_correto
+    }];"""
+    
+content = content.replace(math_timed_2_old, math_timed_2_new)
+
+
+math_prob_1_old = """      const probAnswers = [...mathProblemAnswers, {
+        problem: currentProblem?.enunciado_textual_problema || '',
+        expression: problemExpression,
+        answer: mathAnswer,
+        correct: true
+      }];"""
+      
+math_prob_1_new = """      const probAnswers = [...mathProblemAnswers, {
+        problem: currentProblem?.enunciado_textual_problema || '',
+        expression: problemExpression,
+        answer: mathAnswer,
+        correct: true,
+        correctAnswer: currentProblem?.multipla_escolha?.id_resposta_correta || currentProblem?.resposta_correta || currentProblem?.solucao_matematica_esperada,
+        steps: currentProblem?.passos_para_montagem_guiada
+      }];"""
+      
+content = content.replace(math_prob_1_old, math_prob_1_new)
+
+math_prob_2_old = """      const probAnswers = [...mathProblemAnswers, {
+        problem: currentProblem?.enunciado_textual_problema || '',
+        expression: problemExpression,
+        answer: mathAnswer,
+        correct: false
+      }];"""
+      
+math_prob_2_new = """      const probAnswers = [...mathProblemAnswers, {
+        problem: currentProblem?.enunciado_textual_problema || '',
+        expression: problemExpression,
+        answer: mathAnswer,
+        correct: false,
+        correctAnswer: currentProblem?.multipla_escolha?.id_resposta_correta || currentProblem?.resposta_correta || currentProblem?.solucao_matematica_esperada,
+        steps: currentProblem?.passos_para_montagem_guiada
+      }];"""
+      
+content = content.replace(math_prob_2_old, math_prob_2_new)
+
+
+math_prob_3_old = """    const probAnswers = [...mathProblemAnswers, {
+      problem: currentProblem?.enunciado_textual_problema || '',
+      expression: problemExpression,
+      answer: mathAnswer,
+      correct: false,
+      askedForHelp: true
+    }];"""
+    
+math_prob_3_new = """    const probAnswers = [...mathProblemAnswers, {
+      problem: currentProblem?.enunciado_textual_problema || '',
+      expression: problemExpression,
+      answer: mathAnswer,
+      correct: false,
+      askedForHelp: true,
+      correctAnswer: currentProblem?.multipla_escolha?.id_resposta_correta || currentProblem?.resposta_correta || currentProblem?.solucao_matematica_esperada,
+      steps: currentProblem?.passos_para_montagem_guiada
+    }];"""
+    
+content = content.replace(math_prob_3_old, math_prob_3_new)
 
 with open('src/components/ChildDashboard.tsx', 'w') as f:
     f.write(content)
