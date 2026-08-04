@@ -3,7 +3,7 @@ import { FileText, Settings, Key, CheckCircle2, BookOpen, Calculator, AlertTrian
 import { GeneratedStudySession } from '../types';
 import { auth } from '../lib/firebase';
 import { listActivitiesFromDrive, listCompletedActivitiesFromDrive, getDriveToken, readActivityFromDrive } from '../lib/drive';
-import { getStudentResults, subscribeToStudentResults, StudentResult, evaluateStudentResult, updateStudentResult, deleteStudentResult } from '../lib/db';
+import { getStudentResults, subscribeToStudentResults, StudentResult, evaluateStudentResult, updateStudentResult, deleteStudentResult, subscribeToActiveSession } from '../lib/db';
 
 interface TutorDashboardProps {
   onGenerate: (data: GeneratedStudySession, text: string) => void;
@@ -15,10 +15,16 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
   const [results, setResults] = useState<StudentResult[]>([]);
   const [expandedTextId, setExpandedTextId] = useState<string | null>(null);
   const [expandedMissionId, setExpandedMissionId] = useState<string | null>(null);
+
+
   const [activeTab, setActiveTab] = useState<'create' | 'all' | 'local'>('create');
+  const [missionFilter, setMissionFilter] = useState<'todas' | 'pendentes' | 'em_andamento' | 'concluidas'>('todas');
+
   const [drivePending, setDrivePending] = useState<any[]>([]);
   const [driveCompleted, setDriveCompleted] = useState<any[]>([]);
   const [loadingDrive, setLoadingDrive] = useState(false);
+  const [localActiveSession, setLocalActiveSession] = useState<{sessionData: any, isApproved: boolean} | null>(null);
+
 
   const fetchDriveData = async () => {
     if (!getDriveToken()) return;
@@ -44,13 +50,27 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
     setResults(res.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
+
   useEffect(() => {
     if (!auth.currentUser) return;
     const unsubscribe = subscribeToStudentResults(auth.currentUser.uid, (res) => {
       setResults(res.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     });
-    return () => unsubscribe();
+    
+    const unsubscribeSession = subscribeToActiveSession(auth.currentUser.uid, (data) => {
+      if (data) {
+        setLocalActiveSession({ sessionData: data.sessionData, isApproved: data.isApproved });
+      } else {
+        setLocalActiveSession(null);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeSession();
+    };
   }, []);
+
 
   const handleEvaluate = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -278,42 +298,103 @@ export const TutorDashboard: React.FC<TutorDashboardProps> = ({ onGenerate }) =>
 
       {activeTab === 'all' && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 mt-8">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-slate-800">
-            <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
-              <BookOpen className="w-6 h-6" />
+
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h2 className="text-2xl font-bold flex items-center gap-3 text-slate-800">
+              <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              Missões Geradas
+            </h2>
+
+            <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
+              <button
+                onClick={() => setMissionFilter('todas')}
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${missionFilter === 'todas' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Todas
+              </button>
+              <button
+                onClick={() => setMissionFilter('pendentes')}
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${missionFilter === 'pendentes' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Pendentes
+              </button>
+              <button
+                onClick={() => setMissionFilter('em_andamento')}
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${missionFilter === 'em_andamento' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Em Andamento
+              </button>
+              <button
+                onClick={() => setMissionFilter('concluidas')}
+                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${missionFilter === 'concluidas' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                Concluídas
+              </button>
             </div>
-            Todas as Missões Geradas
-          </h2>
+          </div>
+
           
           {loadingDrive ? (
             <div className="flex justify-center p-8 text-blue-500 font-bold animate-pulse">Carregando missões do Drive...</div>
           ) : (
             <div className="space-y-4">
-              {[...drivePending.map(m => ({...m, status: 'pendente'})), ...driveCompleted.map(m => ({...m, status: 'concluida'}))]
-                .sort((a, b) => new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime())
-                .map(file => (
-                <div key={file.id} className="p-5 border rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 gap-4">
-                  <div>
-                    <h4 className="font-bold text-slate-800 text-lg">{file.name.replace('.json', '')}</h4>
-                    <p className="text-sm text-slate-500">Gerada em: {new Date(file.createdTime).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    {file.status === 'pendente' ? (
-                      <span className="px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm font-bold flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-500"></span> Pendente
-                      </span>
-                    ) : (
-                      <span className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-bold flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Concluída
-                      </span>
+              {(() => {
+                const showLocal = localActiveSession && (missionFilter === 'todas' || (missionFilter === 'pendentes' && !localActiveSession.isApproved) || (missionFilter === 'em_andamento' && localActiveSession.isApproved));
+                const allDriveMissions = [...drivePending.map(m => ({...m, status: 'em_andamento'})), ...driveCompleted.map(m => ({...m, status: 'concluida'}))];
+                const filteredDriveMissions = allDriveMissions.filter(m => missionFilter === 'todas' || missionFilter === m.status).sort((a, b) => new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime());
+                
+                return (
+                  <>
+                    {showLocal && (
+                      <div className="p-5 border rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center bg-blue-50/50 border-blue-200 gap-4 mb-4">
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-lg">Sessão Local</h4>
+                          <p className="text-sm text-slate-500">
+                            Status: {localActiveSession.isApproved ? 'Aprovada (Pronta para o Aluno)' : 'Aguardando Aprovação (Em Revisão)'}
+                          </p>
+                        </div>
+                        <div>
+                          {localActiveSession.isApproved ? (
+                            <span className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-bold flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-blue-500"></span> Em Andamento
+                            </span>
+                          ) : (
+                            <span className="px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm font-bold flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-amber-500"></span> Pendente de Revisão
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     )}
-                  </div>
-                </div>
-              ))}
-              
-              {drivePending.length === 0 && driveCompleted.length === 0 && (
-                <div className="text-center p-8 text-slate-500">Nenhuma missão encontrada no Google Drive.</div>
-              )}
+                    
+                    {filteredDriveMissions.map(file => (
+                      <div key={file.id} className="p-5 border rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 gap-4">
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-lg">{file.name.replace('.json', '')}</h4>
+                          <p className="text-sm text-slate-500">Gerada em: {new Date(file.createdTime).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          {file.status === 'em_andamento' ? (
+                            <span className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-bold flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-blue-500"></span> Em Andamento
+                            </span>
+                          ) : (
+                            <span className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-bold flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Concluída
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {!showLocal && filteredDriveMissions.length === 0 && (
+                      <div className="text-center p-8 text-slate-500">Nenhuma missão encontrada para este filtro.</div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
